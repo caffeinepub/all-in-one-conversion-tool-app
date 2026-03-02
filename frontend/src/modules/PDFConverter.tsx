@@ -1,66 +1,71 @@
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { ChevronRight } from 'lucide-react';
-import { usePDFOperations } from './PDFConverter/usePDFOperations';
+import { FileText, ScanLine, GitMerge, RefreshCw, PlusSquare } from 'lucide-react';
+import PDFScanner from './PDFConverter/PDFScanner';
 import PDFFileList from './PDFConverter/PDFFileList';
 import MergeSplitTools from './PDFConverter/MergeSplitTools';
-import PageManager from './PDFConverter/PageManager';
+import ConvertDownload from './PDFConverter/ConvertDownload';
 import CreatePDFFromImages from './PDFConverter/CreatePDFFromImages';
+import { usePDFOperations } from './PDFConverter/usePDFOperations';
 
-type TabId = 'files' | 'merge-split' | 'pages' | 'create';
-
-const TABS: { id: TabId; label: string; step: number }[] = [
-  { id: 'files', label: '① Files', step: 1 },
-  { id: 'merge-split', label: '② Merge/Split', step: 2 },
-  { id: 'pages', label: '③ Pages', step: 3 },
-  { id: 'create', label: '④ Create', step: 4 },
-];
+type PDFTab = 'scanner' | 'files' | 'merge' | 'convert' | 'create';
 
 export default function PDFConverter() {
-  const [activeTab, setActiveTab] = useState<TabId>('files');
+  const [activeTab, setActiveTab] = useState<PDFTab>('scanner');
   const {
-    pdfFiles,
+    files,
     isProcessing,
-    lastMergeResult,
-    lastSplitResults,
+    isConverting,
+    convertedPdfData,
+    error,
     lastCreatedPDF,
-    addPDFs,
-    removePDF,
+    addFiles,
+    removeFile,
     mergePDFs,
     splitPDF,
     removePages,
     createPDFFromImages,
+    convertAndMergeAll,
+    clearConvertedPdf,
+    mergeSplitEntries,
+    isMerging,
+    mergeError,
+    addMergeSplitFiles,
+    togglePageRemoval,
+    mergeAndDownload,
+    clearMergeSplitEntries,
   } = usePDFOperations();
 
-  const handleNext = () => {
-    const idx = TABS.findIndex(t => t.id === activeTab);
-    if (idx < TABS.length - 1) {
-      setActiveTab(TABS[idx + 1].id);
-    }
-  };
+  const tabs: { id: PDFTab; label: string; icon: React.ReactNode }[] = [
+    { id: 'scanner', label: 'PDF Scanner', icon: <ScanLine className="w-4 h-4" /> },
+    { id: 'files', label: 'Files', icon: <FileText className="w-4 h-4" /> },
+    { id: 'merge', label: 'Merge/Split', icon: <GitMerge className="w-4 h-4" /> },
+    { id: 'convert', label: 'Convert', icon: <RefreshCw className="w-4 h-4" /> },
+    { id: 'create', label: 'Create', icon: <PlusSquare className="w-4 h-4" /> },
+  ];
 
   return (
     <div className="animate-slide-up">
       <div className="text-center mb-6">
         <h2 className="font-display text-2xl font-bold text-foreground mb-2">PDF Converter</h2>
-        <p className="text-muted-foreground text-sm">Merge, split, manage pages, and create PDFs from images</p>
+        <p className="text-muted-foreground text-sm">Add PDFs &amp; images, convert, merge, split, and scan documents</p>
       </div>
 
       <div className="glass-card overflow-hidden">
-        {/* Tab Navigation */}
+        {/* Tab Bar */}
         <div className="flex overflow-x-auto scrollbar-thin border-b border-border/50">
-          {TABS.map(tab => (
+          {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`
-                flex-shrink-0 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap
+                flex items-center gap-1.5 flex-shrink-0 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap
                 ${activeTab === tab.id
                   ? 'text-primary border-b-2 border-primary bg-primary/5'
                   : 'text-muted-foreground hover:text-foreground'
                 }
               `}
             >
+              {tab.icon}
               {tab.label}
             </button>
           ))}
@@ -68,61 +73,47 @@ export default function PDFConverter() {
 
         {/* Tab Content */}
         <div className="p-4 md:p-6">
+          {activeTab === 'scanner' && (
+            <PDFScanner />
+          )}
+
           {activeTab === 'files' && (
-            <div className="space-y-4">
-              <PDFFileList
-                pdfFiles={pdfFiles}
-                isProcessing={isProcessing}
-                onAddPDFs={addPDFs}
-                onRemovePDF={removePDF}
-              />
-              <div className="flex justify-end pt-2">
-                <Button
-                  size="sm"
-                  onClick={handleNext}
-                  disabled={pdfFiles.length === 0}
-                  className="gap-2"
-                >
-                  Next
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
+            <PDFFileList
+              pdfFiles={files}
+              isProcessing={isProcessing}
+              onAddPDFs={addFiles}
+              onRemovePDF={removeFile}
+              convertToDownloadable={convertAndMergeAll}
+              isConverting={isConverting}
+            />
           )}
 
-          {activeTab === 'merge-split' && (
-            <div className="space-y-4">
-              <MergeSplitTools
-                pdfFiles={pdfFiles}
-                isProcessing={isProcessing}
-                lastMergeResult={lastMergeResult}
-                lastSplitResults={lastSplitResults}
-                onMerge={mergePDFs}
-                onSplit={splitPDF}
-              />
-              <div className="flex justify-end pt-2">
-                <Button size="sm" onClick={handleNext} className="gap-2">
-                  Next
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
+          {activeTab === 'merge' && (
+            <MergeSplitTools
+              isProcessing={isProcessing}
+              isMerging={isMerging}
+              mergeError={mergeError}
+              entries={mergeSplitEntries}
+              onAddFiles={addMergeSplitFiles}
+              onToggleRemoval={togglePageRemoval}
+              onMergeAndDownload={mergeAndDownload}
+              onClear={clearMergeSplitEntries}
+              pdfFiles={files.filter(f => f.fileType === 'pdf')}
+              onMerge={mergePDFs}
+              onSplit={splitPDF}
+              onRemovePages={removePages}
+            />
           )}
 
-          {activeTab === 'pages' && (
-            <div className="space-y-4">
-              <PageManager
-                pdfFiles={pdfFiles}
-                isProcessing={isProcessing}
-                onRemovePages={removePages}
-              />
-              <div className="flex justify-end pt-2">
-                <Button size="sm" onClick={handleNext} className="gap-2">
-                  Next
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
+          {activeTab === 'convert' && (
+            <ConvertDownload
+              files={files}
+              isConverting={isConverting}
+              convertedPdfData={convertedPdfData}
+              error={error}
+              onConvert={convertAndMergeAll}
+              onClear={clearConvertedPdf}
+            />
           )}
 
           {activeTab === 'create' && (

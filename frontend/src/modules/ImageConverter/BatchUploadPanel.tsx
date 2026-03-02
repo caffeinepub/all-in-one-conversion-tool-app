@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Upload, X } from 'lucide-react';
+import { Upload, X, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ImageFile } from './useImageConversion';
 
@@ -11,9 +11,10 @@ interface BatchUploadPanelProps {
   onAddImages: (files: File[]) => void;
   onRemoveImage: (id: string) => void;
   onClearAll: () => void;
+  onNext?: () => void;
 }
 
-export function BatchUploadPanel({ images, onAddImages, onRemoveImage, onClearAll }: BatchUploadPanelProps) {
+export function BatchUploadPanel({ images, onAddImages, onRemoveImage, onClearAll, onNext }: BatchUploadPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDrop = (e: React.DragEvent) => {
@@ -57,7 +58,12 @@ export function BatchUploadPanel({ images, onAddImages, onRemoveImage, onClearAl
           <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto">
             {images.map(img => (
               <div key={img.id} className="relative group rounded-lg overflow-hidden border border-border aspect-square bg-muted">
-                <img src={img.preview} alt={img.name} className="w-full h-full object-cover" />
+                <img
+                  src={img.preview}
+                  alt={img.name}
+                  className="w-full h-full object-cover"
+                  onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                />
                 <button
                   onClick={() => onRemoveImage(img.id)}
                   className="absolute top-1 right-1 rounded-full bg-black/60 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -69,6 +75,18 @@ export function BatchUploadPanel({ images, onAddImages, onRemoveImage, onClearAl
           </div>
         </div>
       )}
+
+      {/* Navigation */}
+      <div className="flex justify-end pt-2 border-t border-border/40">
+        <button
+          onClick={onNext}
+          disabled={images.length === 0}
+          className="tool-btn px-5 py-2 text-sm font-medium flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Next
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
     </div>
   );
 }

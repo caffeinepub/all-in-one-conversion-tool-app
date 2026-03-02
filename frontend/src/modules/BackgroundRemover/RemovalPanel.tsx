@@ -67,7 +67,6 @@ export default function RemovalPanel({
               className="w-10 h-8 rounded cursor-pointer border border-border bg-transparent"
             />
             <span className="text-xs text-muted-foreground font-mono">{bgColor}</span>
-            {/* Quick color presets */}
             <div className="flex gap-1 ml-auto">
               {['#ffffff', '#000000', '#0000ff', '#00ff00', '#ff0000'].map(c => (
                 <button

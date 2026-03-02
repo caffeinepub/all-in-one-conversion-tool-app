@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { ImageIcon } from 'lucide-react';
 
 interface BeforeAfterPreviewProps {
   originalDataUrl: string;
@@ -9,6 +10,10 @@ export default function BeforeAfterPreview({ originalDataUrl, resultDataUrl }: B
   const [sliderPos, setSliderPos] = useState(50);
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
+  const [beforeError, setBeforeError] = useState(false);
+  const [afterError, setAfterError] = useState(false);
+  const [beforeLoaded, setBeforeLoaded] = useState(false);
+  const [afterLoaded, setAfterLoaded] = useState(false);
 
   const handleMouseDown = () => { isDragging.current = true; };
   const handleMouseUp = () => { isDragging.current = false; };
@@ -51,23 +56,50 @@ export default function BeforeAfterPreview({ originalDataUrl, resultDataUrl }: B
             backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0px',
           }}
         />
-        <img
-          src={resultDataUrl}
-          alt="Result"
-          className="absolute inset-0 w-full h-full object-contain"
-        />
+        {afterError ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
+            <div className="text-center text-muted-foreground">
+              <ImageIcon className="w-6 h-6 mx-auto mb-1 opacity-40" />
+              <p className="text-xs">Result unavailable</p>
+            </div>
+          </div>
+        ) : (
+          <img
+            src={resultDataUrl}
+            alt="Result"
+            className="absolute inset-0 w-full h-full object-contain"
+            style={{ opacity: afterLoaded ? 1 : 0, transition: 'opacity 0.2s' }}
+            onLoad={() => setAfterLoaded(true)}
+            onError={() => setAfterError(true)}
+          />
+        )}
 
         {/* Before (original) - clipped */}
         <div
           className="absolute inset-0 overflow-hidden"
           style={{ width: `${sliderPos}%` }}
         >
-          <img
-            src={originalDataUrl}
-            alt="Original"
-            className="absolute inset-0 h-full object-contain bg-secondary/50"
-            style={{ width: containerRef.current?.offsetWidth ?? 400 }}
-          />
+          {beforeError ? (
+            <div className="flex items-center justify-center w-full h-full bg-muted/50">
+              <div className="text-center text-muted-foreground">
+                <ImageIcon className="w-6 h-6 mx-auto mb-1 opacity-40" />
+                <p className="text-xs">Original unavailable</p>
+              </div>
+            </div>
+          ) : (
+            <img
+              src={originalDataUrl}
+              alt="Original"
+              className="absolute inset-0 h-full object-contain bg-secondary/50"
+              style={{
+                width: containerRef.current?.offsetWidth ?? 400,
+                opacity: beforeLoaded ? 1 : 0,
+                transition: 'opacity 0.2s',
+              }}
+              onLoad={() => setBeforeLoaded(true)}
+              onError={() => setBeforeError(true)}
+            />
+          )}
         </div>
 
         {/* Slider */}

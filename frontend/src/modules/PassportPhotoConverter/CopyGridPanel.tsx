@@ -29,7 +29,6 @@ export default function CopyGridPanel({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Use 300 DPI for high-quality rendering
     const exportDPI = 300;
     const scale = exportDPI / 25.4;
 
@@ -52,6 +51,8 @@ export default function CopyGridPanel({
     const img = new window.Image();
 
     const drawAll = () => {
+      if (!img.naturalWidth || !img.naturalHeight) return;
+
       let x = marginPx;
       let y = marginPx;
       let count = 0;
@@ -69,33 +70,87 @@ export default function CopyGridPanel({
 
         ctx.drawImage(img, x, y, photoW, photoH);
 
-        // Draw text
         if (textConfig.enabled && textConfig.content) {
-          const { fontFamily, fontSize, color, bold, italic, align } = textConfig;
+          const {
+            fontFamily, fontSize, color, bold, italic, align,
+            textBgEnabled, textBgColor, textBgOpacity,
+            textShadowEnabled, textShadowColor, textShadowBlur,
+            textShadowOffsetX, textShadowOffsetY,
+          } = textConfig;
+
           const scaledFontSize = Math.round(fontSize * (exportDPI / 72));
-          ctx.font = `${italic ? 'italic ' : ''}${bold ? 'bold ' : ''}${scaledFontSize}px ${fontFamily}`;
+          const fontStyle = `${italic ? 'italic ' : ''}${bold ? 'bold ' : ''}${scaledFontSize}px ${fontFamily}`;
+          ctx.font = fontStyle;
+
+          const textX = align === 'left' ? x : align === 'right' ? x + photoW : x + photoW / 2;
+          const textY = y + photoH + scaledFontSize + 2;
+
+          // Measure text for background rect
+          const metrics = ctx.measureText(textConfig.content);
+          const textWidth = metrics.width;
+          const bgPadX = 6;
+          const bgPadY = 4;
+
+          // Draw text background if enabled
+          if (textBgEnabled) {
+            const bgX = align === 'left'
+              ? x - bgPadX
+              : align === 'right'
+              ? x + photoW - textWidth - bgPadX
+              : x + photoW / 2 - textWidth / 2 - bgPadX;
+            const bgY = textY - scaledFontSize - bgPadY;
+            const bgW = textWidth + bgPadX * 2;
+            const bgH = scaledFontSize + bgPadY * 2;
+
+            ctx.save();
+            ctx.globalAlpha = textBgOpacity;
+            ctx.fillStyle = textBgColor;
+            ctx.fillRect(bgX, bgY, bgW, bgH);
+            ctx.restore();
+          }
+
+          // Apply shadow if enabled
+          if (textShadowEnabled) {
+            ctx.shadowColor = textShadowColor;
+            ctx.shadowBlur = textShadowBlur;
+            ctx.shadowOffsetX = textShadowOffsetX;
+            ctx.shadowOffsetY = textShadowOffsetY;
+          }
+
+          // Draw text
           ctx.fillStyle = color;
           ctx.textAlign = align;
-          const textX = align === 'left' ? x : align === 'right' ? x + photoW : x + photoW / 2;
-          ctx.fillText(textConfig.content, textX, y + photoH + scaledFontSize + 2, photoW);
+          ctx.fillText(textConfig.content, textX, textY, photoW);
+
+          // Reset shadow to avoid affecting other canvas operations
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
         }
 
         x += photoW + gapPx;
         count++;
       }
 
-      // Draw A4 border
       ctx.strokeStyle = '#cccccc';
       ctx.lineWidth = Math.round(scale);
       ctx.strokeRect(0, 0, a4W, a4H);
     };
 
+    img.onload = drawAll;
+    img.onerror = () => { /* silently ignore broken image */ };
+
     if (img.complete && img.naturalWidth > 0) {
       drawAll();
     } else {
-      img.onload = drawAll;
+      img.src = processedDataUrl;
     }
-    img.src = processedDataUrl;
+
+    // Set src after attaching handlers if not already set
+    if (!img.src) {
+      img.src = processedDataUrl;
+    }
   }, [processedDataUrl, copyCount, widthMm, heightMm, textConfig, resolvedRef]);
 
   if (!processedDataUrl) {
@@ -112,18 +167,14 @@ export default function CopyGridPanel({
     <div className="glass-card p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-foreground">A4 Sheet Preview</h3>
-        <span className="text-xs text-muted-foreground">{copyCount} copies</span>
+        <span className="text-xs text-muted-foreground">210 × 297 mm</span>
       </div>
-      <div className="overflow-auto rounded-lg border border-border/50 bg-white">
+      <div className="overflow-auto rounded border border-border/40 bg-muted/20">
         <canvas
           ref={resolvedRef}
-          className="block max-w-full"
-          style={{ width: '100%', height: 'auto' }}
+          style={{ width: '100%', height: 'auto', display: 'block' }}
         />
       </div>
-      <p className="text-xs text-muted-foreground text-center">
-        A4 (210×297mm) — {widthMm}×{heightMm}mm per photo · 300 DPI
-      </p>
     </div>
   );
 }

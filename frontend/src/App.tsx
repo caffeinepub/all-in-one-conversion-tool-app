@@ -5,10 +5,9 @@ import Header from './components/Header';
 import TabNavigation from './components/TabNavigation';
 import ImageEditor from './modules/ImageEditor';
 import PDFConverter from './modules/PDFConverter';
-import ImageConverter from './modules/ImageConverter';
-import PassportPhotoConverter from './modules/PassportPhotoConverter';
+import { ImageConverter } from './modules/ImageConverter';
+import { PassportPhotoConverter } from './modules/PassportPhotoConverter';
 import BackgroundRemover from './modules/BackgroundRemover';
-import VideoDownloader from './modules/VideoDownloader';
 import Footer from './components/Footer';
 
 export type TabId =
@@ -16,8 +15,7 @@ export type TabId =
   | 'pdf-converter'
   | 'image-converter'
   | 'passport-photo'
-  | 'bg-remover'
-  | 'video-downloader';
+  | 'bg-remover';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState<TabId>('image-editor');
@@ -33,7 +31,6 @@ function AppContent() {
           {activeTab === 'image-converter' && <ImageConverter />}
           {activeTab === 'passport-photo' && <PassportPhotoConverter />}
           {activeTab === 'bg-remover' && <BackgroundRemover />}
-          {activeTab === 'video-downloader' && <VideoDownloader />}
         </div>
       </main>
       <Footer />

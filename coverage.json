@@ -1,28 +1,90 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-03-02T12:36:22.264Z",
+  "generatedAt": "2026-03-02T17:04:30.901Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 7,
+    "implemented": 7,
     "items": [
       {
-        "id": "REQ-35",
-        "summary": "In the Background Remover module (frontend/src/modules/BackgroundRemover.tsx and frontend/src/modules/BackgroundRemover/BrushToolPanel.tsx), update the brush/paint tool workflow so that: (1) The user activates the Paint tool button to enter paint mode and paints over the area of the image they want to remove (the selected area is highlighted with a semi-transparent red overlay as already implemented). (2) After painting the desired area, the user clicks a dedicated 'Erase' button (distinct from the existing erase-mode toggle) that processes the canvas and removes only the painted/selected pixels — making them transparent (PNG output) or replacing them with the chosen solid color (JPG output). (3) The 'Erase' button must be prominently visible in the BrushToolPanel or the main toolbar whenever there are painted brush strokes on the canvas (i.e., the mask is non-empty). (4) The existing 'Remove Background' flow in RemovalPanel.tsx must continue to work as before for auto-detect and full background removal. (5) The Erase button must be styled using the existing tool-btn and teal/cyan accent CSS classes consistent with the glassmorphism design system.",
+        "id": "REQ-73",
+        "summary": "In the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), remove the 'Live Scanner' camera button entirely. Replace it with only a 'Choose from Files' button (on mobile, label it 'Choose from Files (Google Files / Scanner)'). When clicked, open a native file picker accepting image files (JPG, PNG, JPEG, WEBP) and PDF files. Selected image files are added directly as scanned page entries. Selected PDF files have their pages rendered as individual scanned page entries using PDF.js loaded from CDN. All imported pages must appear in the scanned pages thumbnail list and participate in all subsequent crop, adjustment, and 'Convert to PDF' export operations. Remove all camera/getUserMedia/video-element code from the component.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/modules/BackgroundRemover/useBackgroundRemover.ts",
-          "frontend/src/modules/BackgroundRemover/BrushToolPanel.tsx",
-          "frontend/src/modules/BackgroundRemover.tsx"
+          "frontend/src/modules/PDFConverter/PDFScanner.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/modules/BackgroundRemover/useBackgroundRemover.ts",
-          "frontend/src/modules/BackgroundRemover/BrushToolPanel.tsx",
-          "frontend/src/modules/BackgroundRemover.tsx"
+          "frontend/src/modules/PDFConverter/PDFScanner.tsx"
+        ]
+      },
+      {
+        "id": "REQ-74",
+        "summary": "Within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), after a user imports image files via the 'Choose from Files' button, automatically detect document/page edges for each imported image using a Canvas-based edge detection algorithm (pixel contrast analysis or equivalent). Apply an automatic perspective crop to the detected document quadrilateral without requiring manual user interaction. Display the auto-cropped result as the default preview for each scanned page. Provide a 'Manual Crop' fallback mode with draggable corner handles so the user can override the automatic crop if needed. Provide an 'Apply Crop' button to confirm and a 'Reset' button to revert to the uncropped original.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/modules/PDFConverter/PDFScanner.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/modules/PDFConverter/PDFScanner.tsx"
+        ]
+      },
+      {
+        "id": "REQ-75",
+        "summary": "Within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), provide per-page image adjustment controls for each scanned/imported page: a Brightness slider (range -100 to +100), a Contrast slider (range -100 to +100), and a 'Darken Text' toggle that applies a threshold/levels filter via Canvas to boost dark pixels and lighten the background for improved text legibility. Apply all adjustments in real time on the Canvas preview of the currently selected page. Store adjustments per page so each page can have independent settings.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/modules/PDFConverter/PDFScanner.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/modules/PDFConverter/PDFScanner.tsx"
+        ]
+      },
+      {
+        "id": "REQ-76",
+        "summary": "Within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), ensure the scanned pages list panel displays thumbnails of all imported and processed pages in order. Each thumbnail must show its page number and a remove (✕) button to delete that page from the list. The user must be able to import additional pages at any time using the 'Choose from Files' button, appending them to the existing list.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/modules/PDFConverter/PDFScanner.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/modules/PDFConverter/PDFScanner.tsx"
+        ]
+      },
+      {
+        "id": "REQ-77",
+        "summary": "Within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), implement a 'Convert to PDF' button that takes all scanned and processed pages (with individual crop and adjustment settings applied) and generates a single PDF document using pdf-lib loaded from CDN (following the same CDN-load pattern used in usePDFOperations.ts). Each page image is embedded as a full-page entry in the output PDF. Show a loading/progress indicator during generation. After generation completes, display a 'Download PDF' button that triggers a browser file download of the resulting PDF.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/modules/PDFConverter/PDFScanner.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/modules/PDFConverter/PDFScanner.tsx"
+        ]
+      },
+      {
+        "id": "REQ-78",
+        "summary": "Within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), add a filename input field that allows the user to specify a custom filename for the exported PDF before downloading. Pre-fill the input with a default name (e.g., 'scanned-document.pdf'). When the download is triggered, use the specified filename. Validate that the filename is non-empty; if the user omits the '.pdf' extension, append it automatically.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/modules/PDFConverter/PDFScanner.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/modules/PDFConverter/PDFScanner.tsx"
+        ]
+      },
+      {
+        "id": "REQ-79",
+        "summary": "Apply the existing dark-first glassmorphism design system to all updated and new UI elements within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx). Use glass-card surfaces for the file import panel, scanned pages list, adjustment controls panel, and export controls. Use tool-btn CSS classes for all action buttons ('Choose from Files', 'Apply Crop', 'Reset', 'Convert to PDF', 'Download PDF'). Use teal/cyan accent colors for active states and primary action buttons. Ensure the layout is fully mobile-responsive, stacking the file import area, scanned pages list, and adjustment/export controls vertically on small screens.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/modules/PDFConverter/PDFScanner.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/modules/PDFConverter/PDFScanner.tsx"
         ]
       }
     ]
@@ -32,9 +94,7 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/modules/BackgroundRemover.tsx",
-    "frontend/src/modules/BackgroundRemover/BrushToolPanel.tsx",
-    "frontend/src/modules/BackgroundRemover/useBackgroundRemover.ts",
+    "frontend/src/modules/PDFConverter/PDFScanner.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

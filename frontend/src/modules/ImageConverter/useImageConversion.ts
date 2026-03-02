@@ -218,7 +218,6 @@ export function useImageConversion() {
     setProgress((prev) => ({ ...prev, isConverting: false }));
   }, [images, settings]);
 
-  // Legacy alias
   const convertSingle = useCallback(async (imageFile: ImageFile) => {
     try {
       const converted = await convertImage(imageFile, settings);
@@ -268,7 +267,6 @@ export function useImageConversion() {
     }
   }, [convertedImages]);
 
-  // Legacy alias
   const downloadAll = downloadAllAsZip;
   const updateSettings = setSettings;
   const isBatchConverting = progress.isConverting;

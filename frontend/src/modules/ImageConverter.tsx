@@ -1,25 +1,94 @@
-import { useState } from 'react';
-import { useImageConversion } from './ImageConverter/useImageConversion';
-import { ConversionSettings } from './ImageConverter/ConversionSettings';
-import { BeforeAfterPreview } from './ImageConverter/BeforeAfterPreview';
+import React from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ImageIcon, AlertCircle } from 'lucide-react';
+import { useImageConversion, type ConversionSettings as ConversionSettingsType } from './ImageConverter/useImageConversion';
+import { BatchUploadPanel } from './ImageConverter/BatchUploadPanel';
+import ConversionSettingsPanel from './ImageConverter/ConversionSettings';
+import BeforeAfterPreview from './ImageConverter/BeforeAfterPreview';
 import ExportPanel from './ImageConverter/ExportPanel';
-import { Upload, X, Image as ImageIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 
-type TabId = 'upload' | 'settings' | 'preview' | 'export';
+function PreviewImage({ src, alt }: { src: string | null; alt: string }) {
+  const [error, setError] = React.useState(false);
+  const [loaded, setLoaded] = React.useState(false);
 
-const TABS: { id: TabId; label: string; step: number }[] = [
-  { id: 'upload', label: 'Upload', step: 1 },
-  { id: 'settings', label: 'Settings', step: 2 },
-  { id: 'preview', label: 'Preview', step: 3 },
-  { id: 'export', label: 'Export', step: 4 },
-];
+  React.useEffect(() => {
+    setError(false);
+    setLoaded(false);
+  }, [src]);
 
-export default function ImageConverter() {
-  const [activeTab, setActiveTab] = useState<TabId>('upload');
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
-  const hook = useImageConversion();
+  if (!src) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2 p-4">
+        <ImageIcon className="w-10 h-10 opacity-30" />
+        <p className="text-sm text-center">Upload images to see preview</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-destructive gap-2 p-4">
+        <AlertCircle className="w-8 h-8 opacity-60" />
+        <p className="text-xs text-center">Preview unavailable</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-full h-full">
+      {!loaded && (
+        <div className="absolute inset-0 flex items-center justify-center bg-muted/30">
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className="w-full h-full object-contain"
+        style={{ opacity: loaded ? 1 : 0, transition: 'opacity 0.2s' }}
+        onLoad={() => setLoaded(true)}
+        onError={() => setError(true)}
+      />
+    </div>
+  );
+}
+
+function ThumbnailItem({ src, alt }: { src: string; alt: string }) {
+  const [error, setError] = React.useState(false);
+  const [loaded, setLoaded] = React.useState(false);
+
+  React.useEffect(() => {
+    setError(false);
+    setLoaded(false);
+  }, [src]);
+
+  if (error) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-muted/50">
+        <AlertCircle className="w-3 h-3 text-destructive opacity-60" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-full h-full">
+      {!loaded && <div className="absolute inset-0 bg-muted/30" />}
+      <img
+        src={src}
+        alt={alt}
+        className="w-full h-full object-cover"
+        style={{ opacity: loaded ? 1 : 0 }}
+        onLoad={() => setLoaded(true)}
+        onError={() => setError(true)}
+      />
+    </div>
+  );
+}
+
+const TAB_ORDER = ['upload', 'settings', 'preview', 'export'] as const;
+type TabValue = typeof TAB_ORDER[number];
+
+export function ImageConverter() {
   const {
     images,
     settings,
@@ -34,245 +103,166 @@ export default function ImageConverter() {
     convertAll,
     downloadSingle,
     downloadAllAsZip,
-  } = hook;
+  } = useImageConversion();
 
-  // Keep selectedImageIndex in bounds
-  const safeIndex = images.length > 0 ? Math.min(selectedImageIndex, images.length - 1) : 0;
-  const selectedImage = images[safeIndex] ?? null;
+  const [activeTab, setActiveTab] = React.useState<TabValue>('upload');
+  const [selectedIndex, setSelectedIndex] = React.useState(0);
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
-    if (files.length > 0) addImages(files);
-  };
+  const currentImage = images[selectedIndex] ?? null;
+  const currentConverted = currentImage
+    ? convertedImages.find(c => c.id === currentImage.id) ?? null
+    : null;
 
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      addImages(Array.from(e.target.files));
-    }
-    e.target.value = '';
-  };
+  const handleSettingsChange = React.useCallback((partial: Partial<ConversionSettingsType>) => {
+    setSettings(prev => ({ ...prev, ...partial }));
+  }, [setSettings]);
 
-  const handleRemoveImage = (id: string) => {
-    const idx = images.findIndex(img => img.id === id);
-    removeImage(id);
-    // Adjust selected index if needed
-    if (idx <= safeIndex && safeIndex > 0) {
-      setSelectedImageIndex(safeIndex - 1);
-    }
-  };
+  const goToTab = React.useCallback((tab: TabValue) => {
+    setActiveTab(tab);
+  }, []);
 
-  return (
-    <div className="flex flex-col h-full">
-      {/* Tab Navigation */}
-      <div className="flex border-b border-border bg-card/50 px-4">
-        {TABS.map(tab => (
+  const goNext = React.useCallback(() => {
+    const idx = TAB_ORDER.indexOf(activeTab);
+    if (idx < TAB_ORDER.length - 1) setActiveTab(TAB_ORDER[idx + 1]);
+  }, [activeTab]);
+
+  const goBack = React.useCallback(() => {
+    const idx = TAB_ORDER.indexOf(activeTab);
+    if (idx > 0) setActiveTab(TAB_ORDER[idx - 1]);
+  }, [activeTab]);
+
+  const ThumbnailStrip = () => {
+    if (images.length <= 1) return null;
+    return (
+      <div className="flex gap-2 overflow-x-auto pb-2 mt-3">
+        {images.map((img, idx) => (
           <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === tab.id
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
+            key={img.id}
+            onClick={() => setSelectedIndex(idx)}
+            className={`flex-shrink-0 w-12 h-12 rounded border-2 overflow-hidden transition-all ${
+              idx === selectedIndex ? 'border-primary' : 'border-border/50 hover:border-border'
             }`}
           >
-            <span className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold ${
-              activeTab === tab.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-            }`}>
-              {tab.step}
-            </span>
-            {tab.label}
+            <ThumbnailItem src={img.preview} alt={img.name} />
           </button>
         ))}
       </div>
+    );
+  };
 
-      {/* Main Layout: Left Preview + Right Tab Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="flex flex-col md:flex-row h-full min-h-0">
-          {/* Left Side: Persistent Image Preview */}
-          <div className="w-full md:w-64 lg:w-72 flex-shrink-0 border-b md:border-b-0 md:border-r border-border bg-card/30 p-4 flex flex-col gap-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Image Preview
-            </h3>
-
-            {selectedImage ? (
-              <div className="space-y-3">
-                {/* Main preview */}
-                <div className="rounded-lg overflow-hidden border border-border bg-muted aspect-square">
-                  <img
-                    src={selectedImage.preview}
-                    alt={selectedImage.name}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-                <div className="text-xs text-muted-foreground truncate text-center">
-                  {selectedImage.name}
-                </div>
-
-                {/* Thumbnail strip for multiple images */}
-                {images.length > 1 && (
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">
-                      {images.length} images — click to preview
-                    </p>
-                    <div className="grid grid-cols-4 gap-1 max-h-40 overflow-y-auto">
-                      {images.map((img, idx) => (
-                        <button
-                          key={img.id}
-                          onClick={() => setSelectedImageIndex(idx)}
-                          className={`relative rounded overflow-hidden aspect-square border-2 transition-colors ${
-                            idx === safeIndex
-                              ? 'border-primary'
-                              : 'border-transparent hover:border-border'
-                          }`}
-                        >
-                          <img
-                            src={img.preview}
-                            alt={img.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center flex-1 min-h-[160px] rounded-lg border-2 border-dashed border-border/50 text-center p-4">
-                <ImageIcon className="h-10 w-10 text-muted-foreground/30 mb-2" />
-                <p className="text-xs text-muted-foreground">No image loaded</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">Upload images in the Upload tab</p>
-              </div>
-            )}
+  return (
+    <div className="flex flex-col lg:flex-row gap-6">
+      {/* Left: Persistent Preview Panel */}
+      <div className="lg:w-72 flex-shrink-0">
+        <div className="glass-card p-4 sticky top-4">
+          <p className="text-sm font-semibold text-foreground mb-3">
+            {currentImage ? currentImage.name : 'Preview'}
+          </p>
+          <div
+            className="w-full rounded-lg overflow-hidden bg-muted/20 border border-border/50 flex items-center justify-center"
+            style={{ minHeight: 200, aspectRatio: '4/3' }}
+          >
+            <PreviewImage
+              src={currentImage?.preview ?? null}
+              alt={currentImage?.name ?? 'preview'}
+            />
           </div>
-
-          {/* Right Side: Tab Content */}
-          <div className="flex-1 overflow-auto p-4">
-            {/* Upload Tab */}
-            {activeTab === 'upload' && (
-              <div className="space-y-4 max-w-xl">
-                <div
-                  className="upload-zone rounded-xl border-2 border-dashed border-border p-10 text-center cursor-pointer hover:border-primary/50 transition-colors"
-                  onDrop={handleDrop}
-                  onDragOver={e => e.preventDefault()}
-                  onClick={() => document.getElementById('img-file-input')?.click()}
-                >
-                  <Upload className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
-                  <p className="text-sm font-medium">Drop images here or click to browse</p>
-                  <p className="text-xs text-muted-foreground mt-1">Supports JPEG, PNG, WebP, GIF, BMP</p>
-                  <input
-                    id="img-file-input"
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={handleFileInput}
-                  />
-                </div>
-
-                {images.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">
-                        {images.length} image{images.length !== 1 ? 's' : ''} loaded
-                        <Badge variant="secondary" className="ml-2">{images.length}</Badge>
-                      </span>
-                      <Button variant="ghost" size="sm" onClick={clearAll}>Clear All</Button>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {images.map((img, idx) => (
-                        <div
-                          key={img.id}
-                          className={`relative group rounded-lg overflow-hidden border-2 bg-card cursor-pointer transition-colors ${
-                            idx === safeIndex ? 'border-primary' : 'border-border hover:border-primary/50'
-                          }`}
-                          onClick={() => setSelectedImageIndex(idx)}
-                        >
-                          <img src={img.preview} alt={img.name} className="w-full aspect-square object-cover" />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleRemoveImage(img.id); }}
-                            className="absolute top-1 right-1 rounded-full bg-black/60 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="h-3 w-3 text-white" />
-                          </button>
-                          <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <p className="text-xs text-white truncate">{img.name}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex justify-end">
-                  <Button
-                    onClick={() => setActiveTab('settings')}
-                    disabled={images.length === 0}
-                  >
-                    Next: Settings →
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Settings Tab */}
-            {activeTab === 'settings' && (
-              <div className="max-w-md space-y-4">
-                <ConversionSettings
-                  settings={settings}
-                  onChange={(partial) => setSettings(prev => ({ ...prev, ...partial }))}
-                />
-                <div className="flex justify-end">
-                  <Button onClick={() => setActiveTab('preview')}>
-                    Next: Preview →
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Preview Tab */}
-            {activeTab === 'preview' && (
-              <div className="space-y-4 max-w-xl">
-                {selectedImage ? (
-                  <>
-                    <BeforeAfterPreview
-                      originalImage={selectedImage}
-                      convertedImage={convertedImages.find(c => c.id === selectedImage.id) ?? null}
-                      settings={settings}
-                    />
-                    <div className="flex justify-end">
-                      <Button onClick={() => setActiveTab('export')}>
-                        Next: Export →
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <ImageIcon className="mx-auto h-12 w-12 mb-3 opacity-30" />
-                    <p>No images loaded. Go back to Upload.</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Export Tab */}
-            {activeTab === 'export' && (
-              <div className="max-w-xl">
-                <ExportPanel
-                  convertedImages={convertedImages}
-                  progress={progress}
-                  error={error}
-                  isZipping={isZipping}
-                  onConvertAll={convertAll}
-                  onDownloadSingle={downloadSingle}
-                  onDownloadAllAsZip={downloadAllAsZip}
-                />
-              </div>
-            )}
-          </div>
+          <ThumbnailStrip />
+          {currentImage && (
+            <div className="mt-3 space-y-1">
+              <p className="text-xs text-muted-foreground">
+                Original: {(currentImage.size / 1024).toFixed(1)} KB
+              </p>
+              {currentConverted && (
+                <p className="text-xs text-muted-foreground">
+                  Converted: {(currentConverted.size / 1024).toFixed(1)} KB
+                </p>
+              )}
+            </div>
+          )}
         </div>
+      </div>
+
+      {/* Right: Tabs */}
+      <div className="flex-1 min-w-0">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
+          <TabsList className="w-full grid grid-cols-4">
+            <TabsTrigger value="upload">Upload</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="preview">Preview</TabsTrigger>
+            <TabsTrigger value="export">Export</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="upload" className="mt-4">
+            <BatchUploadPanel
+              images={images}
+              onAddImages={addImages}
+              onRemoveImage={removeImage}
+              onClearAll={clearAll}
+              onNext={goNext}
+            />
+          </TabsContent>
+
+          <TabsContent value="settings" className="mt-4">
+            <ConversionSettingsPanel
+              settings={settings}
+              onChange={handleSettingsChange}
+              onNext={goNext}
+              onBack={goBack}
+            />
+          </TabsContent>
+
+          <TabsContent value="preview" className="mt-4">
+            {currentImage ? (
+              <BeforeAfterPreview
+                originalImage={currentImage}
+                convertedImage={currentConverted}
+                settings={settings}
+                onNext={goNext}
+                onBack={goBack}
+              />
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-center py-16 text-muted-foreground">
+                  <div className="text-center">
+                    <ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p>Upload images first to preview</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t border-border/40">
+                  <button
+                    onClick={goBack}
+                    className="tool-btn px-5 py-2 text-sm font-medium"
+                  >
+                    ← Back
+                  </button>
+                  <button
+                    onClick={goNext}
+                    className="tool-btn px-5 py-2 text-sm font-medium"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="export" className="mt-4">
+            <ExportPanel
+              convertedImages={convertedImages}
+              progress={progress}
+              error={error}
+              isZipping={isZipping}
+              onConvertAll={convertAll}
+              onDownloadSingle={downloadSingle}
+              onDownloadAllAsZip={downloadAllAsZip}
+              onBack={goBack}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
 }
+
+export default ImageConverter;

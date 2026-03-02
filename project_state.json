@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 23,
+  "projectStateVersion": 51,
   "summary": "All-in-One Conversion Tool App website with five main modules: Image Editor, PDF Converter, Image Converter, Passport Size Photo Converter, and Image Background Remover. Features dark/light mode, mobile-responsive modern UI with smooth animations.",
   "architectural_notes": [
     "Client-side processing preferred for image/PDF operations to avoid server costs and privacy concerns",
@@ -9,14 +9,17 @@
     "Passport Size Photo Converter uses Canvas API for image resizing, HD enhancement (sharpness/brightness/contrast filters), and A4 sheet grid layout generation for print/download",
     "Image Background Remover uses Canvas API with brush-based mask painting for manual background selection; transparent PNG output via canvas compositing; no server-side AI required (optional client-side model)",
     "APK conversion requires wrapping the web app in a WebView shell (e.g., using Capacitor or Cordova) or a PWA-to-APK tool (e.g., TWA/Bubblewrap)",
-    "Video Downloader tab uses YouTube Data API v3 (key: AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ) for YouTube video metadata/download; Facebook video download may require third-party proxy or scraping approach due to API restrictions"
+    "Video Downloader tab uses YouTube Data API v3 (key: AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ) for YouTube video metadata/download; Facebook video download may require third-party proxy or scraping approach due to API restrictions",
+    "PDF Scanner tab uses MediaDevices.getUserMedia for live camera feed; document edge detection for auto-crop can use canvas-based algorithms or a library like OpenCV.js; brightness/contrast/darken-text adjustments applied via Canvas 2D filters before PDF assembly"
   ],
   "known_issues": [
     "HEIC format support is limited in browsers and may require a conversion library (e.g., heic2any)",
     "Camera access requires HTTPS and user permission grants",
     "True AI-based background removal requires a client-side ML model (e.g., ONNX/TensorFlow.js); manual brush selection is the primary fallback",
     "APK packaging is not natively supported in a browser-only stack; requires a build tool like Capacitor, Cordova, or Bubblewrap/TWA",
-    "Direct YouTube/Facebook video downloading via browser is restricted by CORS and platform ToS; a server-side proxy or third-party service may be required for actual video download functionality"
+    "Direct YouTube/Facebook video downloading via browser is restricted by CORS and platform ToS; a server-side proxy or third-party service may be required for actual video download functionality",
+    "Background Remover: uploaded image does not appear in the canvas/preview after upload",
+    "PDF Scanner: camera access requires HTTPS and user permission; auto document edge detection in-browser is complex and may require OpenCV.js or a similar library loaded from CDN"
   ],
   "isFixRequest": false,
   "existing_features": [
@@ -291,6 +294,350 @@
         "REQ-35"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-in-the-background-remover-module-frontend-src-modules-backgroundremover-tsx-reorder-the-main-workspace-layout-so-that-the-before-after-comparison-panel-frontend-src-modules-backgroundremover-beforeafterpreview-tsx-is-displayed-at-the-top-of-the-workspace-and-the-brush-mode-paint-areas-to-erase-panel-frontend-src-modules-backgroundremover-brushtoolpanel-tsx-is-displayed-below-it-at-the-bottom-all-other-panels-removalpanel-cropoverlay-exportpanel-must-remain-functional-and-their-relative-order-should-be-preserved-beneath-or-alongside-the-brush-tool-panel-as-appropriate",
+      "title": "In the Background Remover module (frontend/src/modules/BackgroundRemover.tsx), reorder the main workspace layout so that the Before/After Comparison panel (frontend/src/modules/BackgroundRemover/BeforeAfterPreview.tsx) is displayed at the top of the workspace, and the Brush Mode / Paint areas to erase panel (frontend/src/modules/BackgroundRemover/BrushToolPanel.tsx) is displayed below it at the bottom. All other panels (RemovalPanel, CropOverlay, ExportPanel) must remain functional and their relative order should be preserved beneath or alongside the brush tool panel as appropriate.",
+      "reqIds": [
+        "REQ-36"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-video-downloader-module-frontend-src-modules-videodownloader-tsx-replace-the-single-url-input-field-with-two-separate-clearly-labeled-url-input-fields-one-dedicated-to-facebook-video-links-labeled-facebook-video-url-and-one-dedicated-to-youtube-video-links-labeled-youtube-video-url-each-input-field-must-have-its-own-independent-download-button-the-facebook-input-triggers-the-existing-facebook-oembed-fetch-and-open-flow-the-youtube-input-triggers-the-existing-youtube-data-api-v3-metadata-fetch-api-key-aizasydlj5yvdipe6oyjniw-ojg5cz5-krj33yq-and-opens-the-resolved-url-in-a-new-tab-each-section-must-independently-display-its-own-loading-spinner-error-messages-video-thumbnail-title-and-quality-selector-for-youtube-both-sections-must-be-styled-using-the-existing-glassmorphism-design-system-glass-card-surfaces-tool-btn-classes-teal-cyan-accent-colors-and-be-fully-mobile-responsive-stacking-vertically-on-small-screens",
+      "title": "In the Video Downloader module (frontend/src/modules/VideoDownloader.tsx), replace the single URL input field with two separate, clearly labeled URL input fields: one dedicated to Facebook video links (labeled 'Facebook Video URL') and one dedicated to YouTube video links (labeled 'YouTube Video URL'). Each input field must have its own independent 'Download' button. The Facebook input triggers the existing Facebook oEmbed fetch-and-open flow. The YouTube input triggers the existing YouTube Data API v3 metadata fetch (API key: AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ) and opens the resolved URL in a new tab. Each section must independently display its own loading spinner, error messages, video thumbnail, title, and quality selector (for YouTube). Both sections must be styled using the existing glassmorphism design system (glass-card surfaces, tool-btn classes, teal/cyan accent colors) and be fully mobile-responsive, stacking vertically on small screens.",
+      "reqIds": [
+        "REQ-37"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-background-remover-module-frontend-src-modules-backgroundremover-tsx-ensure-the-before-after-comparison-panel-beforeafterpreview-tsx-is-rendered-at-the-top-of-the-workspace-and-the-brush-mode-paint-areas-to-erase-panel-brushtoolpanel-tsx-is-rendered-directly-below-it-all-other-panels-removalpanel-cropoverlay-exportpanel-must-remain-functional-and-appear-beneath-the-brush-tool-panel-in-their-existing-relative-order",
+      "title": "In the Background Remover module (frontend/src/modules/BackgroundRemover.tsx), ensure the Before/After Comparison panel (BeforeAfterPreview.tsx) is rendered at the top of the workspace and the Brush Mode / Paint areas to erase panel (BrushToolPanel.tsx) is rendered directly below it. All other panels (RemovalPanel, CropOverlay, ExportPanel) must remain functional and appear beneath the Brush Tool panel in their existing relative order.",
+      "reqIds": [
+        "REQ-38"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-background-remover-module-frontend-src-modules-backgroundremover-tsx-and-frontend-src-modules-backgroundremover-brushtoolpanel-tsx-fix-the-canvas-so-that-it-does-not-shift-scroll-or-reposition-when-the-user-paints-or-selects-an-area-with-the-brush-tool-the-canvas-container-must-have-a-fixed-position-and-stable-dimensions-during-all-brush-interaction-events-mousedown-mousemove-mouseup-touchstart-touchmove-touchend-prevent-any-layout-reflow-or-scroll-jump-triggered-by-brush-strokes",
+      "title": "In the Background Remover module (frontend/src/modules/BackgroundRemover.tsx and frontend/src/modules/BackgroundRemover/BrushToolPanel.tsx), fix the canvas so that it does not shift, scroll, or reposition when the user paints or selects an area with the brush tool. The canvas container must have a fixed position and stable dimensions during all brush interaction events (mousedown, mousemove, mouseup, touchstart, touchmove, touchend). Prevent any layout reflow or scroll-jump triggered by brush strokes.",
+      "reqIds": [
+        "REQ-39"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-image-converter-module-frontend-src-modules-imageconverter-tsx-and-its-sub-panels-audit-and-fix-all-errors-related-to-the-persistent-left-side-image-preview-panel-ensure-the-preview-image-loads-and-displays-correctly-when-an-image-is-uploaded-updates-when-the-user-switches-between-images-in-a-batch-and-does-not-show-a-broken-or-missing-preview-at-any-tab-upload-settings-preview-export-handle-null-or-undefined-image-sources-gracefully",
+      "title": "In the Image Converter module (frontend/src/modules/ImageConverter.tsx and its sub-panels), audit and fix all errors related to the persistent left-side image preview panel. Ensure the preview image loads and displays correctly when an image is uploaded, updates when the user switches between images in a batch, and does not show a broken or missing preview at any tab (Upload, Settings, Preview, Export). Handle null or undefined image sources gracefully.",
+      "reqIds": [
+        "REQ-41"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-passport-photo-converter-module-frontend-src-modules-passportphotoconverter-tsx-and-frontend-src-modules-passportphotoconverter-copygridpanel-tsx-audit-and-fix-all-errors-related-to-the-passport-photo-preview-displayed-at-the-top-of-the-workspace-and-within-the-a4-copy-grid-ensure-the-processed-enhanced-passport-photo-renders-correctly-after-upload-updates-in-real-time-when-size-presets-or-copy-count-change-and-that-the-a4-canvas-grid-renders-all-copies-without-blank-or-broken-images-handle-cases-where-the-canvas-or-image-data-is-not-yet-available",
+      "title": "In the Passport Photo Converter module (frontend/src/modules/PassportPhotoConverter.tsx and frontend/src/modules/PassportPhotoConverter/CopyGridPanel.tsx), audit and fix all errors related to the passport photo preview displayed at the top of the workspace and within the A4 copy grid. Ensure the processed/enhanced passport photo renders correctly after upload, updates in real-time when size presets or copy count change, and that the A4 canvas grid renders all copies without blank or broken images. Handle cases where the canvas or image data is not yet available.",
+      "reqIds": [
+        "REQ-42"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-background-remover-module-frontend-src-modules-backgroundremover-tsx-and-frontend-src-modules-backgroundremover-beforeafterpreview-tsx-audit-and-fix-all-errors-related-to-the-before-after-comparison-preview-images-ensure-the-original-image-and-the-background-removed-result-both-render-correctly-in-the-comparison-slider-handle-cases-where-the-result-image-is-not-yet-available-show-a-placeholder-or-disabled-state-instead-of-a-broken-image-fix-any-null-reference-errors-when-either-image-source-is-missing",
+      "title": "In the Background Remover module (frontend/src/modules/BackgroundRemover.tsx and frontend/src/modules/BackgroundRemover/BeforeAfterPreview.tsx), audit and fix all errors related to the before/after comparison preview images. Ensure the original image and the background-removed result both render correctly in the comparison slider. Handle cases where the result image is not yet available (show a placeholder or disabled state instead of a broken image). Fix any null reference errors when either image source is missing.",
+      "reqIds": [
+        "REQ-43"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-pdf-converter-module-frontend-src-modules-pdfconverter-pagemanager-tsx-audit-and-fix-all-errors-related-to-pdf-page-thumbnail-previews-rendered-via-pdf-js-ensure-page-thumbnails-load-and-display-correctly-for-uploaded-pdf-files-and-do-not-show-blank-or-broken-thumbnails-handle-pdf-js-load-failures-from-cdn-gracefully-with-a-user-facing-error-message-fix-any-null-canvas-or-rendering-context-errors",
+      "title": "In the PDF Converter module (frontend/src/modules/PDFConverter/PageManager.tsx), audit and fix all errors related to PDF page thumbnail previews rendered via PDF.js. Ensure page thumbnails load and display correctly for uploaded PDF files, and do not show blank or broken thumbnails. Handle PDF.js load failures from CDN gracefully with a user-facing error message. Fix any null canvas or rendering context errors.",
+      "reqIds": [
+        "REQ-44"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-passport-photo-converter-module-frontend-src-modules-passportphotoconverter-textcustomizationpanel-tsx-and-frontend-src-modules-passportphotoconverter-usepassportphoto-ts-add-a-text-background-color-control-to-the-text-overlay-panel-this-should-include-a-color-picker-that-lets-the-user-choose-a-background-color-rendered-behind-the-text-on-each-passport-photo-copy-and-a-toggle-or-opacity-slider-to-enable-disable-the-background-the-selected-background-color-must-be-applied-when-rendering-the-text-overlay-on-the-a4-canvas-grid-in-copygridpanel-tsx",
+      "title": "In the Passport Photo Converter module (frontend/src/modules/PassportPhotoConverter/TextCustomizationPanel.tsx and frontend/src/modules/PassportPhotoConverter/usePassportPhoto.ts), add a 'Text Background Color' control to the text overlay panel. This should include a color picker that lets the user choose a background color rendered behind the text on each passport photo copy, and a toggle or opacity slider to enable/disable the background. The selected background color must be applied when rendering the text overlay on the A4 canvas grid in CopyGridPanel.tsx.",
+      "reqIds": [
+        "REQ-45"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-passport-photo-converter-module-frontend-src-modules-passportphotoconverter-textcustomizationpanel-tsx-and-frontend-src-modules-passportphotoconverter-usepassportphoto-ts-add-text-shadow-adjustment-controls-to-the-text-overlay-panel-provide-at-minimum-a-shadow-toggle-enable-disable-a-shadow-color-picker-a-shadow-blur-radius-slider-range-0-20px-and-horizontal-vertical-shadow-offset-sliders-range-10-to-10px-apply-the-configured-shadow-when-rendering-text-on-the-a4-canvas-grid-in-copygridpanel-tsx-using-the-canvas-2d-context-s-shadowcolor-shadowblur-shadowoffsetx-and-shadowoffsety-properties",
+      "title": "In the Passport Photo Converter module (frontend/src/modules/PassportPhotoConverter/TextCustomizationPanel.tsx and frontend/src/modules/PassportPhotoConverter/usePassportPhoto.ts), add text shadow adjustment controls to the text overlay panel. Provide at minimum a shadow toggle (enable/disable), a shadow color picker, a shadow blur radius slider (range 0–20px), and horizontal/vertical shadow offset sliders (range -10 to 10px). Apply the configured shadow when rendering text on the A4 canvas grid in CopyGridPanel.tsx using the Canvas 2D context's shadowColor, shadowBlur, shadowOffsetX, and shadowOffsetY properties.",
+      "reqIds": [
+        "REQ-46"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-image-converter-module-frontend-src-modules-imageconverter-tsx-and-its-sub-panels-add-both-a-next-button-and-a-back-button-to-each-tab-in-the-tabbed-interface-upload-settings-preview-export-to-enable-bidirectional-linear-navigation-on-the-upload-tab-show-only-a-next-button-no-back-as-it-is-the-first-tab-that-advances-to-the-settings-tab-it-must-be-disabled-when-no-images-have-been-uploaded-on-the-settings-tab-show-a-back-button-that-returns-to-the-upload-tab-and-a-next-button-that-advances-to-the-preview-tab-on-the-preview-tab-show-a-back-button-that-returns-to-the-settings-tab-and-a-next-button-that-advances-to-the-export-tab-on-the-export-tab-show-a-back-button-that-returns-to-the-preview-tab-no-next-button-as-it-is-the-last-tab-the-existing-export-download-controls-remain-on-this-tab-both-buttons-must-appear-prominently-at-the-bottom-of-each-tab-panel-styled-using-the-existing-tool-btn-and-teal-cyan-accent-css-classes-consistent-with-the-glassmorphism-design-system",
+      "title": "In the Image Converter module (frontend/src/modules/ImageConverter.tsx and its sub-panels), add both a 'Next' button and a 'Back' button to each tab in the tabbed interface (Upload, Settings, Preview, Export) to enable bidirectional linear navigation. On the Upload tab: show only a 'Next' button (no Back, as it is the first tab) that advances to the Settings tab; it must be disabled when no images have been uploaded. On the Settings tab: show a 'Back' button that returns to the Upload tab and a 'Next' button that advances to the Preview tab. On the Preview tab: show a 'Back' button that returns to the Settings tab and a 'Next' button that advances to the Export tab. On the Export tab: show a 'Back' button that returns to the Preview tab (no Next button, as it is the last tab); the existing export/download controls remain on this tab. Both buttons must appear prominently at the bottom of each tab panel, styled using the existing tool-btn and teal/cyan accent CSS classes consistent with the glassmorphism design system.",
+      "reqIds": [
+        "REQ-47"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-image-editor-text-overlay-panel-frontend-src-modules-imageeditor-textoverlay-tsx-and-the-useimagecanvas-hook-frontend-src-modules-imageeditor-useimagecanvas-ts-add-a-text-background-color-control-this-must-include-a-color-picker-that-lets-the-user-choose-a-background-color-rendered-as-a-filled-rectangle-behind-the-text-on-the-canvas-and-a-toggle-enable-disable-to-turn-the-background-on-or-off-the-selected-background-color-and-toggle-state-must-be-stored-in-each-text-layer-s-data-model-within-useimagecanvas-and-applied-when-rendering-text-layers-on-the-canvas",
+      "title": "In the Image Editor Text Overlay panel (frontend/src/modules/ImageEditor/TextOverlay.tsx) and the useImageCanvas hook (frontend/src/modules/ImageEditor/useImageCanvas.ts), add a 'Text Background Color' control. This must include a color picker that lets the user choose a background color rendered as a filled rectangle behind the text on the canvas, and a toggle (enable/disable) to turn the background on or off. The selected background color and toggle state must be stored in each text layer's data model within useImageCanvas and applied when rendering text layers on the canvas.",
+      "reqIds": [
+        "REQ-48"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-image-editor-text-overlay-panel-frontend-src-modules-imageeditor-textoverlay-tsx-and-the-useimagecanvas-hook-frontend-src-modules-imageeditor-useimagecanvas-ts-add-text-shadow-adjustment-controls-provide-a-shadow-toggle-enable-disable-a-shadow-color-picker-a-shadow-blur-radius-slider-range-0-20px-and-horizontal-vertical-shadow-offset-sliders-range-10-to-10px-apply-the-configured-shadow-when-rendering-text-layers-on-the-canvas-using-the-canvas-2d-context-s-shadowcolor-shadowblur-shadowoffsetx-and-shadowoffsety-properties-all-shadow-properties-must-be-stored-per-text-layer-in-useimagecanvas",
+      "title": "In the Image Editor Text Overlay panel (frontend/src/modules/ImageEditor/TextOverlay.tsx) and the useImageCanvas hook (frontend/src/modules/ImageEditor/useImageCanvas.ts), add text shadow adjustment controls. Provide: a shadow toggle (enable/disable), a shadow color picker, a shadow blur radius slider (range 0–20px), and horizontal/vertical shadow offset sliders (range -10 to 10px). Apply the configured shadow when rendering text layers on the canvas using the Canvas 2D context's shadowColor, shadowBlur, shadowOffsetX, and shadowOffsetY properties. All shadow properties must be stored per text layer in useImageCanvas.",
+      "reqIds": [
+        "REQ-49"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-remove-the-video-downloader-tab-from-the-tabnavigation-component-frontend-src-components-tabnavigation-tsx-so-that-only-the-five-original-tabs-remain-image-editor-pdf-converter-image-converter-passport-photo-and-bg-remover-update-app-tsx-to-remove-the-conditional-render-of-the-videodownloader-module-and-any-related-state-references-to-the-video-downloader-tab-the-videodownloader-tsx-module-file-may-remain-in-the-codebase-but-must-not-be-reachable-from-the-ui",
+      "title": "Remove the 'Video Downloader' tab from the TabNavigation component (frontend/src/components/TabNavigation.tsx) so that only the five original tabs remain: Image Editor, PDF Converter, Image Converter, Passport Photo, and BG Remover. Update App.tsx to remove the conditional render of the VideoDownloader module and any related state references to the 'video-downloader' tab. The VideoDownloader.tsx module file may remain in the codebase but must not be reachable from the UI.",
+      "reqIds": [
+        "REQ-50"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-background-remover-module-frontend-src-modules-backgroundremover-tsx-and-frontend-src-modules-backgroundremover-usebackgroundremover-ts-audit-and-fix-all-errors-that-prevent-the-uploaded-image-from-appearing-in-the-canvas-preview-after-the-user-selects-a-file-via-the-browse-photo-button-ensure-the-image-is-correctly-read-via-filereader-or-equivalent-the-resulting-data-url-is-stored-in-state-and-the-canvas-is-drawn-with-the-loaded-image-immediately-after-the-image-onload-event-fires-fix-any-null-canvas-reference-missing-canvas-context-incorrect-canvas-dimensions-or-race-condition-between-image-load-and-canvas-draw-that-could-cause-a-blank-or-missing-preview",
+      "title": "In the Background Remover module (frontend/src/modules/BackgroundRemover.tsx and frontend/src/modules/BackgroundRemover/useBackgroundRemover.ts), audit and fix all errors that prevent the uploaded image from appearing in the canvas preview after the user selects a file via the 'Browse Photo' button. Ensure the image is correctly read via FileReader (or equivalent), the resulting data URL is stored in state, and the canvas is drawn with the loaded image immediately after the image onload event fires. Fix any null canvas reference, missing canvas context, incorrect canvas dimensions, or race condition between image load and canvas draw that could cause a blank or missing preview.",
+      "reqIds": [
+        "REQ-51"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-background-remover-module-frontend-src-modules-backgroundremover-usebackgroundremover-ts-ensure-the-image-load-handler-correctly-sets-both-the-source-image-and-triggers-a-canvas-redraw-synchronously-after-the-htmlimageelement-s-onload-callback-fires-verify-the-canvas-ref-is-attached-to-the-dom-before-attempting-to-get-the-2d-rendering-context-if-the-canvas-ref-is-not-yet-available-at-load-time-defer-the-draw-until-the-ref-is-populated-e-g-via-a-useeffect-dependency-on-the-canvas-ref-and-the-loaded-image-data-url",
+      "title": "In the Background Remover module (frontend/src/modules/BackgroundRemover/useBackgroundRemover.ts), ensure the image load handler correctly sets both the source image and triggers a canvas redraw synchronously after the HTMLImageElement's onload callback fires. Verify the canvas ref is attached to the DOM before attempting to get the 2D rendering context. If the canvas ref is not yet available at load time, defer the draw until the ref is populated (e.g., via a useEffect dependency on the canvas ref and the loaded image data URL).",
+      "reqIds": [
+        "REQ-52"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-pdf-converter-module-frontend-src-modules-pdfconverter-tsx-and-frontend-src-modules-pdfconverter-pdffilelist-tsx-update-the-files-tab-to-support-adding-both-pdf-files-and-image-files-jpg-png-jpeg-webp-in-the-same-file-list-the-upload-zone-and-add-files-button-must-accept-both-pdf-and-image-mime-types-each-item-in-the-file-list-must-display-its-filename-file-type-badge-pdf-or-image-and-an-individual-remove-button-to-delete-it-from-the-list-the-file-list-state-in-usepdfoperations-ts-must-track-both-pdf-entries-and-image-entries-as-separate-typed-items-within-a-unified-list",
+      "title": "In the PDF Converter module (frontend/src/modules/PDFConverter.tsx and frontend/src/modules/PDFConverter/PDFFileList.tsx), update the Files tab to support adding both PDF files and image files (JPG, PNG, JPEG, WEBP) in the same file list. The upload zone and 'Add Files' button must accept both PDF and image MIME types. Each item in the file list must display its filename, file type badge (PDF or Image), and an individual 'Remove' button to delete it from the list. The file list state in usePDFOperations.ts must track both PDF entries and image entries as separate typed items within a unified list.",
+      "reqIds": [
+        "REQ-53"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-pdf-converter-module-frontend-src-modules-pdfconverter-usepdfoperations-ts-and-frontend-src-modules-pdfconverter-createpdffromimages-tsx-implement-a-convert-download-workflow-on-the-create-tab-when-the-user-clicks-the-convert-or-create-pdf-button-merge-all-files-currently-in-the-unified-file-list-pdfs-and-images-into-a-single-output-pdf-using-pdf-lib-loaded-from-cdn-embed-each-image-file-as-a-full-page-image-in-the-pdf-and-append-all-pages-from-each-pdf-file-in-their-listed-order-after-conversion-completes-display-a-download-pdf-button-that-triggers-a-browser-download-of-the-resulting-pdf-file-show-a-loading-progress-indicator-while-the-conversion-is-in-progress-and-a-success-message-when-the-download-is-ready",
+      "title": "In the PDF Converter module (frontend/src/modules/PDFConverter/usePDFOperations.ts and frontend/src/modules/PDFConverter/CreatePDFFromImages.tsx), implement a 'Convert & Download' workflow on the Create tab. When the user clicks the 'Convert' or 'Create PDF' button, merge all files currently in the unified file list (PDFs and images) into a single output PDF using pdf-lib loaded from CDN: embed each image file as a full-page image in the PDF, and append all pages from each PDF file in their listed order. After conversion completes, display a 'Download PDF' button that triggers a browser download of the resulting PDF file. Show a loading/progress indicator while the conversion is in progress and a success message when the download is ready.",
+      "reqIds": [
+        "REQ-54"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-pdf-converter-module-frontend-src-modules-pdfconverter-tsx-remove-the-pages-tab-entirely-from-the-tab-bar-and-all-associated-tab-navigation-logic-the-five-tab-interface-should-become-a-four-tab-interface-files-merge-split-convert-and-create-remove-any-references-to-the-pages-tab-in-the-tab-state-tab-labels-and-next-button-flow-the-pagemanager-component-may-remain-in-the-codebase-but-must-not-be-rendered-from-the-main-tab-ui",
+      "title": "In the PDF Converter module (frontend/src/modules/PDFConverter.tsx), remove the 'Pages' tab entirely from the tab bar and all associated tab navigation logic. The five-tab interface should become a four-tab interface: Files, Merge/Split, Convert, and Create. Remove any references to the Pages tab in the tab state, tab labels, and Next button flow. The PageManager component may remain in the codebase but must not be rendered from the main tab UI.",
+      "reqIds": [
+        "REQ-55"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-pdf-converter-module-frontend-src-modules-pdfconverter-mergesplittools-tsx-and-frontend-src-modules-pdfconverter-usepdfoperations-ts-redesign-the-merge-split-tab-so-that-when-the-user-imports-a-pdf-file-all-pages-of-that-pdf-are-rendered-as-thumbnail-previews-directly-within-the-merge-split-tab-using-pdf-js-loaded-from-cdn-display-each-page-as-a-numbered-thumbnail-in-a-scrollable-grid-render-page-thumbnails-using-the-same-pdf-js-approach-used-in-the-existing-pagemanager-component",
+      "title": "In the PDF Converter module (frontend/src/modules/PDFConverter/MergeSplitTools.tsx and frontend/src/modules/PDFConverter/usePDFOperations.ts), redesign the Merge/Split tab so that when the user imports a PDF file, all pages of that PDF are rendered as thumbnail previews directly within the Merge/Split tab using PDF.js (loaded from CDN). Display each page as a numbered thumbnail in a scrollable grid. Render page thumbnails using the same PDF.js approach used in the existing PageManager component.",
+      "reqIds": [
+        "REQ-56"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-within-the-redesigned-merge-split-tab-frontend-src-modules-pdfconverter-mergesplittools-tsx-add-the-ability-to-remove-individual-pages-from-the-imported-pdf-each-page-thumbnail-must-have-a-visible-remove-button-e-g-an-icon-overlay-clicking-it-marks-that-page-for-removal-from-the-final-output-removed-pages-should-be-visually-indicated-e-g-dimmed-or-crossed-out-and-excluded-when-the-pdf-is-merged-exported",
+      "title": "Within the redesigned Merge/Split tab (frontend/src/modules/PDFConverter/MergeSplitTools.tsx), add the ability to remove individual pages from the imported PDF. Each page thumbnail must have a visible 'Remove' button (e.g., an ✕ icon overlay). Clicking it marks that page for removal from the final output. Removed pages should be visually indicated (e.g., dimmed or crossed out) and excluded when the PDF is merged/exported.",
+      "reqIds": [
+        "REQ-57"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-within-the-redesigned-merge-split-tab-frontend-src-modules-pdfconverter-mergesplittools-tsx-and-frontend-src-modules-pdfconverter-usepdfoperations-ts-add-the-ability-to-insert-additional-image-files-jpg-png-jpeg-webp-and-additional-pdf-files-into-the-page-sequence-alongside-the-already-loaded-pdf-pages-provide-an-add-image-button-and-an-add-pdf-button-or-a-single-add-files-button-accepting-both-types-that-opens-a-file-picker-each-added-image-is-appended-as-a-new-full-page-entry-in-the-page-sequence-each-added-pdf-s-pages-are-appended-in-order-to-the-page-sequence-all-entries-original-pdf-pages-added-images-added-pdfs-must-be-displayed-together-in-the-unified-scrollable-thumbnail-grid-in-their-current-order",
+      "title": "Within the redesigned Merge/Split tab (frontend/src/modules/PDFConverter/MergeSplitTools.tsx and frontend/src/modules/PDFConverter/usePDFOperations.ts), add the ability to insert additional image files (JPG, PNG, JPEG, WEBP) and additional PDF files into the page sequence alongside the already-loaded PDF pages. Provide an 'Add Image' button and an 'Add PDF' button (or a single 'Add Files' button accepting both types) that opens a file picker. Each added image is appended as a new full-page entry in the page sequence. Each added PDF's pages are appended in order to the page sequence. All entries (original PDF pages, added images, added PDFs) must be displayed together in the unified scrollable thumbnail grid in their current order.",
+      "reqIds": [
+        "REQ-58"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-pdf-converter-module-frontend-src-modules-pdfconverter-mergesplittools-tsx-and-frontend-src-modules-pdfconverter-usepdfoperations-ts-add-a-create-pdf-or-merge-download-action-button-at-the-bottom-of-the-merge-split-tab-when-clicked-generate-a-merged-pdf-from-the-current-page-sequence-all-non-removed-entries-original-pdf-pages-rendered-via-pdf-js-added-images-embedded-as-full-page-images-added-pdf-pages-using-pdf-lib-loaded-from-cdn-after-generation-trigger-a-browser-download-of-the-resulting-pdf-file-show-a-loading-progress-indicator-during-processing-and-a-success-message-when-the-download-is-ready",
+      "title": "In the PDF Converter module (frontend/src/modules/PDFConverter/MergeSplitTools.tsx and frontend/src/modules/PDFConverter/usePDFOperations.ts), add a 'Create PDF' or 'Merge & Download' action button at the bottom of the Merge/Split tab. When clicked, generate a merged PDF from the current page sequence (all non-removed entries: original PDF pages rendered via PDF.js, added images embedded as full-page images, added PDF pages) using pdf-lib loaded from CDN. After generation, trigger a browser download of the resulting PDF file. Show a loading/progress indicator during processing and a success message when the download is ready.",
+      "reqIds": [
+        "REQ-59"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-pdf-scanner-tab-to-the-pdf-converter-module-frontend-src-modules-pdfconverter-tsx-alongside-the-existing-four-tabs-files-merge-split-convert-create-the-tab-must-be-labeled-pdf-scanner-and-rendered-in-the-tab-bar-with-the-same-styling-as-the-other-tabs-update-the-tab-state-and-navigation-logic-to-include-this-new-tab-maintain-all-existing-tab-functionality-and-next-back-button-flows-for-the-other-tabs",
+      "title": "Add a 'PDF Scanner' tab to the PDF Converter module (frontend/src/modules/PDFConverter.tsx) alongside the existing four tabs (Files, Merge/Split, Convert, Create). The tab must be labeled 'PDF Scanner' and rendered in the tab bar with the same styling as the other tabs. Update the tab state and navigation logic to include this new tab. Maintain all existing tab functionality and Next/Back button flows for the other tabs.",
+      "reqIds": [
+        "REQ-60"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-a-new-frontend-component-at-frontend-src-modules-pdfconverter-pdfscanner-tsx-this-component-must-provide-a-live-scanner-button-that-when-clicked-requests-camera-access-via-the-browser-mediadevices-api-navigator-mediadevices-getusermedia-with-video-constraints-and-opens-a-live-camera-viewfinder-a-video-element-within-the-panel-display-a-clear-permission-denied-error-message-if-the-user-denies-camera-access-show-a-loading-indicator-while-the-camera-stream-is-initializing",
+      "title": "Create a new frontend component at frontend/src/modules/PDFConverter/PDFScanner.tsx. This component must provide a 'Live Scanner' button that, when clicked, requests camera access via the browser MediaDevices API (navigator.mediaDevices.getUserMedia with video constraints) and opens a live camera viewfinder (a <video> element) within the panel. Display a clear permission-denied error message if the user denies camera access. Show a loading indicator while the camera stream is initializing.",
+      "reqIds": [
+        "REQ-61"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-within-the-pdf-scanner-component-frontend-src-modules-pdfconverter-pdfscanner-tsx-add-a-capture-button-that-appears-while-the-live-camera-viewfinder-is-active-when-clicked-it-captures-the-current-video-frame-onto-a-hidden-canvas-element-and-produces-a-data-url-of-the-captured-image-the-captured-image-is-then-displayed-as-a-still-preview-alongside-the-live-viewfinder-ready-for-crop-and-adjustment-steps-the-user-must-be-able-to-capture-multiple-documents-one-by-one-each-captured-frame-is-appended-to-a-list-of-scanned-page-images",
+      "title": "Within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), add a 'Capture' button that appears while the live camera viewfinder is active. When clicked, it captures the current video frame onto a hidden <canvas> element and produces a data URL of the captured image. The captured image is then displayed as a still preview alongside the live viewfinder, ready for crop and adjustment steps. The user must be able to capture multiple documents one by one; each captured frame is appended to a list of scanned page images.",
+      "reqIds": [
+        "REQ-62"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-within-the-pdf-scanner-component-frontend-src-modules-pdfconverter-pdfscanner-tsx-implement-document-crop-selection-for-each-captured-image-provide-two-crop-modes-1-auto-crop-automatically-detect-the-document-edges-using-a-canvas-based-edge-contour-detection-approach-e-g-analysing-pixel-contrast-or-optionally-loading-opencv-js-from-cdn-and-apply-a-perspective-crop-to-the-detected-quadrilateral-2-manual-crop-display-an-interactive-crop-overlay-on-the-captured-image-with-draggable-corner-handles-allowing-the-user-to-define-the-exact-crop-region-a-toggle-or-radio-control-must-let-the-user-switch-between-auto-and-manual-mode-provide-an-apply-crop-button-to-confirm-the-crop-and-a-reset-button-to-revert-to-the-uncropped-capture",
+      "title": "Within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), implement document crop selection for each captured image. Provide two crop modes: (1) Auto crop — automatically detect the document edges using a Canvas-based edge/contour detection approach (e.g., analysing pixel contrast or optionally loading OpenCV.js from CDN) and apply a perspective crop to the detected quadrilateral; (2) Manual crop — display an interactive crop overlay on the captured image with draggable corner handles, allowing the user to define the exact crop region. A toggle or radio control must let the user switch between Auto and Manual mode. Provide an 'Apply Crop' button to confirm the crop and a 'Reset' button to revert to the uncropped capture.",
+      "reqIds": [
+        "REQ-63"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-within-the-pdf-scanner-component-frontend-src-modules-pdfconverter-pdfscanner-tsx-provide-per-page-image-adjustment-controls-for-each-scanned-and-cropped-page-the-controls-must-include-a-brightness-slider-range-100-to-100-a-contrast-slider-range-100-to-100-and-a-darken-text-toggle-that-when-enabled-applies-a-threshold-or-levels-filter-via-canvas-to-increase-text-legibility-boosting-dark-pixels-and-lightening-background-apply-all-adjustments-in-real-time-on-the-canvas-preview-of-the-currently-selected-scanned-page-adjustments-must-be-stored-per-page-so-each-scanned-document-can-have-independent-settings",
+      "title": "Within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), provide per-page image adjustment controls for each scanned and cropped page. The controls must include: a Brightness slider (range -100 to +100), a Contrast slider (range -100 to +100), and a 'Darken Text' toggle that, when enabled, applies a threshold or levels filter via Canvas to increase text legibility (boosting dark pixels and lightening background). Apply all adjustments in real time on the Canvas preview of the currently selected scanned page. Adjustments must be stored per page so each scanned document can have independent settings.",
+      "reqIds": [
+        "REQ-64"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-within-the-pdf-scanner-component-frontend-src-modules-pdfconverter-pdfscanner-tsx-implement-a-scanned-pages-list-panel-that-displays-thumbnails-of-all-captured-and-processed-pages-in-order-each-thumbnail-must-show-its-page-number-and-a-remove-button-icon-to-delete-that-page-from-the-list-the-user-must-be-able-to-scan-additional-pages-by-returning-to-the-camera-viewfinder-and-capturing-more-frames-appending-them-to-the-existing-list",
+      "title": "Within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), implement a scanned pages list panel that displays thumbnails of all captured and processed pages in order. Each thumbnail must show its page number and a remove button (✕ icon) to delete that page from the list. The user must be able to scan additional pages by returning to the camera viewfinder and capturing more frames, appending them to the existing list.",
+      "reqIds": [
+        "REQ-65"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-within-the-pdf-scanner-component-frontend-src-modules-pdfconverter-pdfscanner-tsx-implement-a-convert-to-pdf-button-that-when-clicked-takes-all-scanned-and-processed-page-canvases-with-their-individual-crop-and-adjustment-settings-applied-and-generates-a-single-pdf-document-using-pdf-lib-loaded-from-cdn-following-the-same-cdn-load-pattern-used-in-usepdfoperations-ts-each-scanned-page-image-is-embedded-as-a-full-page-entry-in-the-output-pdf-show-a-loading-progress-indicator-during-generation-after-generation-completes-display-a-download-pdf-button-that-triggers-a-browser-file-download-of-the-resulting-pdf",
+      "title": "Within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), implement a 'Convert to PDF' button that, when clicked, takes all scanned and processed page canvases (with their individual crop and adjustment settings applied) and generates a single PDF document using pdf-lib loaded from CDN (following the same CDN-load pattern used in usePDFOperations.ts). Each scanned page image is embedded as a full-page entry in the output PDF. Show a loading/progress indicator during generation. After generation completes, display a 'Download PDF' button that triggers a browser file download of the resulting PDF.",
+      "reqIds": [
+        "REQ-66"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-within-the-pdf-scanner-component-frontend-src-modules-pdfconverter-pdfscanner-tsx-add-a-filename-input-field-and-a-rename-control-that-allows-the-user-to-specify-a-custom-filename-for-the-exported-pdf-before-downloading-the-input-must-be-pre-filled-with-a-default-name-e-g-scanned-document-pdf-when-the-user-types-a-new-name-and-triggers-the-download-the-downloaded-file-must-use-the-specified-filename-validate-that-the-filename-is-non-empty-and-append-pdf-automatically-if-the-user-omits-the-extension",
+      "title": "Within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), add a filename input field and a 'Rename' control that allows the user to specify a custom filename for the exported PDF before downloading. The input must be pre-filled with a default name (e.g., 'scanned-document.pdf'). When the user types a new name and triggers the download, the downloaded file must use the specified filename. Validate that the filename is non-empty and append '.pdf' automatically if the user omits the extension.",
+      "reqIds": [
+        "REQ-67"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-apply-the-existing-dark-first-glassmorphism-design-system-to-the-pdf-scanner-tab-and-the-pdfscanner-component-use-glass-card-surfaces-for-the-camera-viewfinder-panel-scanned-pages-list-adjustment-controls-panel-and-export-controls-use-tool-btn-css-classes-for-action-buttons-live-scanner-capture-apply-crop-convert-to-pdf-download-pdf-use-teal-cyan-accent-colors-for-active-states-and-primary-action-buttons-ensure-the-layout-is-fully-mobile-responsive-stacking-the-camera-viewfinder-scanned-pages-list-and-adjustment-export-controls-vertically-on-small-screens",
+      "title": "Apply the existing dark-first glassmorphism design system to the PDF Scanner tab and the PDFScanner component. Use glass-card surfaces for the camera viewfinder panel, scanned pages list, adjustment controls panel, and export controls. Use tool-btn CSS classes for action buttons (Live Scanner, Capture, Apply Crop, Convert to PDF, Download PDF). Use teal/cyan accent colors for active states and primary action buttons. Ensure the layout is fully mobile-responsive, stacking the camera viewfinder, scanned pages list, and adjustment/export controls vertically on small screens.",
+      "reqIds": [
+        "REQ-68"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-pdf-scanner-component-frontend-src-modules-pdfconverter-pdfscanner-tsx-fix-the-camera-permission-request-flow-so-that-when-the-user-clicks-the-live-scanner-button-the-browser-s-native-camera-permission-dialog-is-correctly-triggered-via-navigator-mediadevices-getusermedia-if-the-user-has-not-yet-granted-permission-the-browser-prompt-must-appear-while-the-permission-prompt-is-pending-or-the-stream-is-initializing-display-a-visible-inline-message-reading-please-allow-camera-access-to-guide-the-user-if-the-user-denies-permission-notallowederror-or-notfounderror-dismiss-the-loading-state-and-display-a-clear-persistent-error-message-camera-access-was-denied-please-allow-camera-access-in-your-browser-settings-and-try-again-if-permission-is-granted-and-the-stream-initializes-successfully-hide-the-message-and-display-the-live-camera-viewfinder-as-before",
+      "title": "In the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), fix the camera permission request flow so that when the user clicks the 'Live Scanner' button, the browser's native camera permission dialog is correctly triggered via navigator.mediaDevices.getUserMedia. If the user has not yet granted permission, the browser prompt must appear. While the permission prompt is pending or the stream is initializing, display a visible inline message reading 'Please allow camera access' to guide the user. If the user denies permission (NotAllowedError or NotFoundError), dismiss the loading state and display a clear, persistent error message: 'Camera access was denied. Please allow camera access in your browser settings and try again.' If permission is granted and the stream initializes successfully, hide the message and display the live camera viewfinder as before.",
+      "reqIds": [
+        "REQ-69"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-pdf-converter-module-frontend-src-modules-pdfconverter-tsx-reorder-the-tab-bar-so-that-the-pdf-scanner-tab-appears-as-the-first-tab-followed-by-the-remaining-tabs-in-their-existing-order-files-merge-split-convert-and-create-update-the-tab-state-initialization-so-that-pdf-scanner-is-the-default-active-tab-when-the-pdf-converter-module-is-first-opened-ensure-all-existing-tab-navigation-logic-next-back-button-flows-remains-functional-with-the-new-tab-order",
+      "title": "In the PDF Converter module (frontend/src/modules/PDFConverter.tsx), reorder the tab bar so that the 'PDF Scanner' tab appears as the first tab, followed by the remaining tabs in their existing order: Files, Merge/Split, Convert, and Create. Update the tab state initialization so that 'PDF Scanner' is the default active tab when the PDF Converter module is first opened. Ensure all existing tab navigation logic (Next/Back button flows) remains functional with the new tab order.",
+      "reqIds": [
+        "REQ-70"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-pdf-converter-module-files-tab-frontend-src-modules-pdfconverter-tsx-and-frontend-src-modules-pdfconverter-pdffilelist-tsx-add-a-prominent-create-pdf-button-below-the-file-list-when-clicked-it-must-trigger-the-same-convert-and-download-workflow-already-implemented-in-the-convert-tab-frontend-src-modules-pdfconverter-convertdownload-tsx-and-frontend-src-modules-pdfconverter-usepdfoperations-ts-merge-all-files-currently-in-the-unified-file-list-pdfs-and-images-into-a-single-output-pdf-using-pdf-lib-loaded-from-cdn-then-trigger-a-browser-download-of-the-resulting-pdf-show-a-loading-progress-indicator-during-processing-and-a-success-message-when-the-download-is-ready-the-button-must-be-disabled-when-the-file-list-is-empty-style-the-button-using-the-existing-tool-btn-and-teal-cyan-accent-css-classes-consistent-with-the-glassmorphism-design-system",
+      "title": "In the PDF Converter module Files tab (frontend/src/modules/PDFConverter.tsx and frontend/src/modules/PDFConverter/PDFFileList.tsx), add a prominent 'Create PDF' button below the file list. When clicked, it must trigger the same convert-and-download workflow already implemented in the Convert tab (frontend/src/modules/PDFConverter/ConvertDownload.tsx and frontend/src/modules/PDFConverter/usePDFOperations.ts): merge all files currently in the unified file list (PDFs and images) into a single output PDF using pdf-lib loaded from CDN, then trigger a browser download of the resulting PDF. Show a loading/progress indicator during processing and a success message when the download is ready. The button must be disabled when the file list is empty. Style the button using the existing tool-btn and teal/cyan accent CSS classes consistent with the glassmorphism design system.",
+      "reqIds": [
+        "REQ-71"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-pdf-scanner-component-frontend-src-modules-pdfconverter-pdfscanner-tsx-add-a-choose-from-files-button-alongside-the-existing-live-scanner-button-as-an-alternative-input-method-when-clicked-this-button-opens-a-native-file-picker-that-accepts-image-files-jpg-png-jpeg-webp-and-pdf-files-selected-files-are-imported-and-appended-to-the-scanned-pages-list-exactly-as-if-they-had-been-captured-by-the-camera-image-files-are-added-directly-as-scanned-page-entries-and-pdf-files-have-their-pages-rendered-as-individual-scanned-page-entries-using-pdf-js-loaded-from-cdn-the-imported-pages-must-appear-in-the-scanned-pages-thumbnail-list-and-participate-in-all-subsequent-crop-adjustment-and-convert-to-pdf-export-operations-style-the-choose-from-files-button-using-the-existing-tool-btn-css-class-and-the-glassmorphism-design-system-consistent-with-the-rest-of-the-pdf-scanner-panel-on-mobile-the-button-label-should-read-choose-from-files-google-files-scanner-to-guide-users-toward-their-device-file-manager-or-scanner-app",
+      "title": "In the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), add a 'Choose from Files' button alongside the existing 'Live Scanner' button as an alternative input method. When clicked, this button opens a native file picker that accepts image files (JPG, PNG, JPEG, WEBP) and PDF files. Selected files are imported and appended to the scanned pages list exactly as if they had been captured by the camera: image files are added directly as scanned page entries, and PDF files have their pages rendered as individual scanned page entries using PDF.js (loaded from CDN). The imported pages must appear in the scanned pages thumbnail list and participate in all subsequent crop, adjustment, and 'Convert to PDF' export operations. Style the 'Choose from Files' button using the existing tool-btn CSS class and the glassmorphism design system consistent with the rest of the PDF Scanner panel. On mobile, the button label should read 'Choose from Files (Google Files / Scanner)' to guide users toward their device file manager or scanner app.",
+      "reqIds": [
+        "REQ-72"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-pdf-scanner-component-frontend-src-modules-pdfconverter-pdfscanner-tsx-remove-the-live-scanner-camera-button-entirely-replace-it-with-only-a-choose-from-files-button-on-mobile-label-it-choose-from-files-google-files-scanner-when-clicked-open-a-native-file-picker-accepting-image-files-jpg-png-jpeg-webp-and-pdf-files-selected-image-files-are-added-directly-as-scanned-page-entries-selected-pdf-files-have-their-pages-rendered-as-individual-scanned-page-entries-using-pdf-js-loaded-from-cdn-all-imported-pages-must-appear-in-the-scanned-pages-thumbnail-list-and-participate-in-all-subsequent-crop-adjustment-and-convert-to-pdf-export-operations-remove-all-camera-getusermedia-video-element-code-from-the-component",
+      "title": "In the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), remove the 'Live Scanner' camera button entirely. Replace it with only a 'Choose from Files' button (on mobile, label it 'Choose from Files (Google Files / Scanner)'). When clicked, open a native file picker accepting image files (JPG, PNG, JPEG, WEBP) and PDF files. Selected image files are added directly as scanned page entries. Selected PDF files have their pages rendered as individual scanned page entries using PDF.js loaded from CDN. All imported pages must appear in the scanned pages thumbnail list and participate in all subsequent crop, adjustment, and 'Convert to PDF' export operations. Remove all camera/getUserMedia/video-element code from the component.",
+      "reqIds": [
+        "REQ-73"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-within-the-pdf-scanner-component-frontend-src-modules-pdfconverter-pdfscanner-tsx-after-a-user-imports-image-files-via-the-choose-from-files-button-automatically-detect-document-page-edges-for-each-imported-image-using-a-canvas-based-edge-detection-algorithm-pixel-contrast-analysis-or-equivalent-apply-an-automatic-perspective-crop-to-the-detected-document-quadrilateral-without-requiring-manual-user-interaction-display-the-auto-cropped-result-as-the-default-preview-for-each-scanned-page-provide-a-manual-crop-fallback-mode-with-draggable-corner-handles-so-the-user-can-override-the-automatic-crop-if-needed-provide-an-apply-crop-button-to-confirm-and-a-reset-button-to-revert-to-the-uncropped-original",
+      "title": "Within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), after a user imports image files via the 'Choose from Files' button, automatically detect document/page edges for each imported image using a Canvas-based edge detection algorithm (pixel contrast analysis or equivalent). Apply an automatic perspective crop to the detected document quadrilateral without requiring manual user interaction. Display the auto-cropped result as the default preview for each scanned page. Provide a 'Manual Crop' fallback mode with draggable corner handles so the user can override the automatic crop if needed. Provide an 'Apply Crop' button to confirm and a 'Reset' button to revert to the uncropped original.",
+      "reqIds": [
+        "REQ-74"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-within-the-pdf-scanner-component-frontend-src-modules-pdfconverter-pdfscanner-tsx-provide-per-page-image-adjustment-controls-for-each-scanned-imported-page-a-brightness-slider-range-100-to-100-a-contrast-slider-range-100-to-100-and-a-darken-text-toggle-that-applies-a-threshold-levels-filter-via-canvas-to-boost-dark-pixels-and-lighten-the-background-for-improved-text-legibility-apply-all-adjustments-in-real-time-on-the-canvas-preview-of-the-currently-selected-page-store-adjustments-per-page-so-each-page-can-have-independent-settings",
+      "title": "Within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), provide per-page image adjustment controls for each scanned/imported page: a Brightness slider (range -100 to +100), a Contrast slider (range -100 to +100), and a 'Darken Text' toggle that applies a threshold/levels filter via Canvas to boost dark pixels and lighten the background for improved text legibility. Apply all adjustments in real time on the Canvas preview of the currently selected page. Store adjustments per page so each page can have independent settings.",
+      "reqIds": [
+        "REQ-75"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-within-the-pdf-scanner-component-frontend-src-modules-pdfconverter-pdfscanner-tsx-ensure-the-scanned-pages-list-panel-displays-thumbnails-of-all-imported-and-processed-pages-in-order-each-thumbnail-must-show-its-page-number-and-a-remove-button-to-delete-that-page-from-the-list-the-user-must-be-able-to-import-additional-pages-at-any-time-using-the-choose-from-files-button-appending-them-to-the-existing-list",
+      "title": "Within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), ensure the scanned pages list panel displays thumbnails of all imported and processed pages in order. Each thumbnail must show its page number and a remove (✕) button to delete that page from the list. The user must be able to import additional pages at any time using the 'Choose from Files' button, appending them to the existing list.",
+      "reqIds": [
+        "REQ-76"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-within-the-pdf-scanner-component-frontend-src-modules-pdfconverter-pdfscanner-tsx-implement-a-convert-to-pdf-button-that-takes-all-scanned-and-processed-pages-with-individual-crop-and-adjustment-settings-applied-and-generates-a-single-pdf-document-using-pdf-lib-loaded-from-cdn-following-the-same-cdn-load-pattern-used-in-usepdfoperations-ts-each-page-image-is-embedded-as-a-full-page-entry-in-the-output-pdf-show-a-loading-progress-indicator-during-generation-after-generation-completes-display-a-download-pdf-button-that-triggers-a-browser-file-download-of-the-resulting-pdf",
+      "title": "Within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), implement a 'Convert to PDF' button that takes all scanned and processed pages (with individual crop and adjustment settings applied) and generates a single PDF document using pdf-lib loaded from CDN (following the same CDN-load pattern used in usePDFOperations.ts). Each page image is embedded as a full-page entry in the output PDF. Show a loading/progress indicator during generation. After generation completes, display a 'Download PDF' button that triggers a browser file download of the resulting PDF.",
+      "reqIds": [
+        "REQ-77"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-within-the-pdf-scanner-component-frontend-src-modules-pdfconverter-pdfscanner-tsx-add-a-filename-input-field-that-allows-the-user-to-specify-a-custom-filename-for-the-exported-pdf-before-downloading-pre-fill-the-input-with-a-default-name-e-g-scanned-document-pdf-when-the-download-is-triggered-use-the-specified-filename-validate-that-the-filename-is-non-empty-if-the-user-omits-the-pdf-extension-append-it-automatically",
+      "title": "Within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), add a filename input field that allows the user to specify a custom filename for the exported PDF before downloading. Pre-fill the input with a default name (e.g., 'scanned-document.pdf'). When the download is triggered, use the specified filename. Validate that the filename is non-empty; if the user omits the '.pdf' extension, append it automatically.",
+      "reqIds": [
+        "REQ-78"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-apply-the-existing-dark-first-glassmorphism-design-system-to-all-updated-and-new-ui-elements-within-the-pdf-scanner-component-frontend-src-modules-pdfconverter-pdfscanner-tsx-use-glass-card-surfaces-for-the-file-import-panel-scanned-pages-list-adjustment-controls-panel-and-export-controls-use-tool-btn-css-classes-for-all-action-buttons-choose-from-files-apply-crop-reset-convert-to-pdf-download-pdf-use-teal-cyan-accent-colors-for-active-states-and-primary-action-buttons-ensure-the-layout-is-fully-mobile-responsive-stacking-the-file-import-area-scanned-pages-list-and-adjustment-export-controls-vertically-on-small-screens",
+      "title": "Apply the existing dark-first glassmorphism design system to all updated and new UI elements within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx). Use glass-card surfaces for the file import panel, scanned pages list, adjustment controls panel, and export controls. Use tool-btn CSS classes for all action buttons ('Choose from Files', 'Apply Crop', 'Reset', 'Convert to PDF', 'Download PDF'). Use teal/cyan accent colors for active states and primary action buttons. Ensure the layout is fully mobile-responsive, stacking the file import area, scanned pages list, and adjustment/export controls vertically on small screens.",
+      "reqIds": [
+        "REQ-79"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -381,12 +728,6 @@
       "status": "pending"
     },
     {
-      "id": "AR-20",
-      "summary": "Add a new 'Video Downloader' tab where users can paste a YouTube or Facebook video link and click to download the video, using the provided API key (AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ)",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
       "id": "AR-21",
       "summary": "Image Converter: show loaded image preview on the left side across all tabs in the Image Converter module",
       "reqIds": [],
@@ -401,6 +742,92 @@
     {
       "id": "AR-23",
       "summary": "Background Remover: user paints/selects an area using the brush/paint tool, then clicks an 'Erase' button to remove the background from the selected area of the photo",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-24",
+      "summary": "Background Remover: reorder layout so Before/After Comparison window is at the top and Brush Mode (Paint areas to erase) panel is at the bottom",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-26",
+      "summary": "In the Image Editor module (frontend/src/modules/ImageEditor.tsx and frontend/src/modules/ImageEditor/useImageCanvas.ts), audit and fix all errors related to the canvas preview image display. Ensure the image renders correctly after upload, after applying any edits (brightness, contrast, saturation, rotate, flip, crop, filters, text overlays), and does not display a blank, broken, or stale canvas at any point. Handle edge cases such as image load failures, null canvas references, and out-of-order state updates.",
+      "reqIds": [
+        "REQ-40"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-27",
+      "summary": "Passport Photo Converter: in the Text Overlay panel, add text background color picker and text shadow adjustment controls",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-28",
+      "summary": "Image Converter: add both Next and Back buttons for tab navigation — Next advances to the next tab, Back returns to the previous tab",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-29",
+      "summary": "Image Editor Text Overlay: add text background color picker and text shadow adjustment controls (shadow toggle, color, blur radius, offset sliders)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-30",
+      "summary": "Background Remover: fix image not showing in preview after user uploads a picture",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-31",
+      "summary": "PDF Converter: allow users to select PDF files and also add/remove individual images and PDFs, then convert/merge them into a final PDF file and download it",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-32",
+      "summary": "PDF Converter: remove the Pages tab; in Merge/Split tab, user imports a PDF and all pages are shown/explored; allow removing individual pages and adding images/PDFs in the Merge/Split tab",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-33",
+      "summary": "PDF Converter: add 'PDF Scanner' tab — user clicks Live Scanner button to open camera, scans documents one by one, auto/manual crop selection, brightness/contrast/darken-text adjustments per scan, then converts all scanned images into a single PDF with save and rename options",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-34",
+      "summary": "PDF Scanner: fix camera permission request flow — when user clicks Live Scanner, properly request camera access and show a clear 'Please allow camera access' prompt/message guiding the user to grant permission",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-35",
+      "summary": "PDF Converter: move the PDF Scanner tab to be the first tab in the tab bar",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-36",
+      "summary": "PDF Converter Files tab: add a 'Create PDF' button to convert/merge listed files into a PDF directly from the Files tab",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-37",
+      "summary": "PDF Scanner: add option to use device file picker (Google Files/scanner app) to import scanned documents instead of live camera, as an alternative input method",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-38",
+      "summary": "PDF Scanner: remove the Live Scanner (camera) button entirely; replace with 'Choose from Files' button only; selected images auto-detect page/document edges and apply automatic crop; allow brightness/contrast adjustment and darken text toggle per page; scan multiple pages one by one; convert all to PDF with save and rename options",
       "reqIds": [],
       "status": "pending"
     }

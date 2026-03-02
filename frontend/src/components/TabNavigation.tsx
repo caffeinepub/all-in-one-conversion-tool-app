@@ -1,4 +1,4 @@
-import { Image, FileText, RefreshCw, CreditCard, Scissors, Download } from 'lucide-react';
+import { Image, FileText, RefreshCw, CreditCard, Scissors } from 'lucide-react';
 import type { TabId } from '../App';
 
 interface Tab {
@@ -38,12 +38,6 @@ const tabs: Tab[] = [
     label: 'BG Remover',
     icon: <Scissors className="w-4 h-4" />,
     description: 'Remove image backgrounds',
-  },
-  {
-    id: 'video-downloader',
-    label: 'Video Downloader',
-    icon: <Download className="w-4 h-4" />,
-    description: 'Download YouTube & Facebook videos',
   },
 ];
 

@@ -1,15 +1,5 @@
-import { useRef, useState, useCallback } from 'react';
+import { useState, useCallback, useRef, RefObject, useEffect } from 'react';
 
-export type BrushMode = 'paint' | 'erase';
-export type OutputMode = 'transparent' | 'color';
-
-export interface BrushState {
-  active: boolean;
-  size: number;
-  mode: BrushMode;
-}
-
-// CropBox uses w/h to match CropOverlay component
 export interface CropBox {
   x: number;
   y: number;
@@ -17,407 +7,443 @@ export interface CropBox {
   h: number;
 }
 
-interface BackgroundRemoverState {
-  imageDataUrl: string | null;
+export interface DisplaySize {
+  width: number;
+  height: number;
+}
+
+export type OutputMode = 'transparent' | 'color';
+
+interface UseBackgroundRemoverReturn {
+  originalDataUrl: string | null;
   resultDataUrl: string | null;
-  brushState: BrushState;
+  isProcessing: boolean;
   outputMode: OutputMode;
   bgColor: string;
   zoom: number;
   rotation: number;
+  cropMode: boolean;
   cropBox: CropBox | null;
-  isProcessing: boolean;
+  brushActive: boolean;
+  brushSize: number;
+  brushMode: 'paint' | 'erase';
   hasMaskStrokes: boolean;
+  displaySize: DisplaySize | null;
+  setOutputMode: (mode: OutputMode) => void;
+  setBgColor: (color: string) => void;
+  setZoom: (zoom: number) => void;
+  setRotation: (rotation: number) => void;
+  setCropMode: (mode: boolean) => void;
+  setCropBox: (box: CropBox) => void;
+  setBrushActive: (active: boolean) => void;
+  setBrushSize: (size: number) => void;
+  setBrushMode: (mode: 'paint' | 'erase') => void;
+  loadImage: (file: File) => void;
+  removeBackground: () => void;
+  autoDetectBackground: () => void;
+  applyCrop: () => void;
+  processManualErase: () => void;
+  reset: () => void;
+  setResultDataUrl: (url: string) => void;
+  drawImageToCanvas: () => void;
+  drawMaskToCanvas: () => void;
+  clearMask: () => void;
+  undoLastStroke: () => void;
 }
 
-const DEFAULT_BRUSH: BrushState = {
-  active: false,
-  size: 20,
-  mode: 'paint',
-};
+export function useBackgroundRemover(
+  canvasRef: RefObject<HTMLCanvasElement | null>,
+  maskCanvasRef: RefObject<HTMLCanvasElement | null>
+): UseBackgroundRemoverReturn {
+  const [originalDataUrl, setOriginalDataUrl] = useState<string | null>(null);
+  const [resultDataUrl, setResultDataUrl] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [outputMode, setOutputMode] = useState<OutputMode>('transparent');
+  const [bgColor, setBgColor] = useState('#ffffff');
+  const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
+  const [cropMode, setCropMode] = useState(false);
+  const [cropBox, setCropBox] = useState<CropBox | null>(null);
+  const [brushActive, setBrushActive] = useState(false);
+  const [brushSize, setBrushSize] = useState(25);
+  const [brushMode, setBrushMode] = useState<'paint' | 'erase'>('paint');
+  const [hasMaskStrokes, setHasMaskStrokes] = useState(false);
+  const [displaySize, setDisplaySize] = useState<DisplaySize | null>(null);
 
-export function useBackgroundRemover() {
   const imageRef = useRef<HTMLImageElement | null>(null);
-  const imageCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const maskCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const resultCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const maskHistoryRef = useRef<ImageData[]>([]);
+  // Stores the computed display dimensions for the pending draw after canvas mounts
+  const pendingDrawDimsRef = useRef<{ w: number; h: number } | null>(null);
 
-  const [state, setState] = useState<BackgroundRemoverState>({
-    imageDataUrl: null,
-    resultDataUrl: null,
-    brushState: DEFAULT_BRUSH,
-    outputMode: 'transparent',
-    bgColor: '#ffffff',
-    zoom: 1,
-    rotation: 0,
-    cropBox: null,
-    isProcessing: false,
-    hasMaskStrokes: false,
-  });
+  const drawImageToCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    const img = imageRef.current;
+    if (!canvas || !img) return;
 
-  const loadImage = useCallback((img: HTMLImageElement, dataUrl: string) => {
-    imageRef.current = img;
-    setState(prev => ({
-      ...prev,
-      imageDataUrl: dataUrl,
-      resultDataUrl: null,
-      hasMaskStrokes: false,
-      cropBox: null,
-    }));
-  }, []);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-  const updateBrushState = useCallback((updates: Partial<BrushState>) => {
-    setState(prev => ({
-      ...prev,
-      brushState: { ...prev.brushState, ...updates },
-    }));
-  }, []);
-
-  const updateOutputMode = useCallback((mode: OutputMode) => {
-    setState(prev => ({ ...prev, outputMode: mode }));
-  }, []);
-
-  const updateBgColor = useCallback((color: string) => {
-    setState(prev => ({ ...prev, bgColor: color }));
-  }, []);
-
-  const updateZoom = useCallback((zoom: number) => {
-    setState(prev => ({ ...prev, zoom: Math.max(0.25, Math.min(4, zoom)) }));
-  }, []);
-
-  const updateRotation = useCallback((rotation: number) => {
-    setState(prev => ({ ...prev, rotation }));
-  }, []);
-
-  const updateCropBox = useCallback((cropBox: CropBox | null) => {
-    setState(prev => ({ ...prev, cropBox }));
-  }, []);
-
-  const checkMaskStrokes = useCallback(() => {
-    const maskCanvas = maskCanvasRef.current;
-    if (!maskCanvas) return false;
-    const ctx = maskCanvas.getContext('2d');
-    if (!ctx) return false;
-    const data = ctx.getImageData(0, 0, maskCanvas.width, maskCanvas.height).data;
-    for (let i = 3; i < data.length; i += 4) {
-      if (data[i] > 0) return true;
+    const maxDim = 600;
+    let w = img.naturalWidth;
+    let h = img.naturalHeight;
+    if (w > maxDim || h > maxDim) {
+      const scale = maxDim / Math.max(w, h);
+      w = Math.round(w * scale);
+      h = Math.round(h * scale);
     }
-    return false;
-  }, []);
 
-  const saveMaskSnapshot = useCallback(() => {
-    const has = checkMaskStrokes();
-    setState(prev => ({ ...prev, hasMaskStrokes: has }));
-  }, [checkMaskStrokes]);
+    const scaledW = Math.round(w * zoom);
+    const scaledH = Math.round(h * zoom);
+
+    canvas.width = scaledW;
+    canvas.height = scaledH;
+
+    ctx.save();
+    ctx.translate(scaledW / 2, scaledH / 2);
+    ctx.rotate((rotation * Math.PI) / 180);
+    ctx.drawImage(img, -scaledW / 2, -scaledH / 2, scaledW, scaledH);
+    ctx.restore();
+
+    const maskCanvas = maskCanvasRef.current;
+    if (maskCanvas) {
+      maskCanvas.width = scaledW;
+      maskCanvas.height = scaledH;
+      maskCanvas.style.width = canvas.style.width;
+      maskCanvas.style.height = canvas.style.height;
+    }
+  }, [canvasRef, maskCanvasRef, zoom, rotation]);
+
+  const drawMaskToCanvas = useCallback(() => {
+    const maskCanvas = maskCanvasRef.current;
+    if (!maskCanvas) return;
+    const ctx = maskCanvas.getContext('2d');
+    if (!ctx) return;
+    const data = ctx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+    const hasStrokes = data.data.some((v, i) => i % 4 === 3 && v > 0);
+    setHasMaskStrokes(hasStrokes);
+  }, [maskCanvasRef]);
+
+  const clearMask = useCallback(() => {
+    const maskCanvas = maskCanvasRef.current;
+    if (!maskCanvas) return;
+    const ctx = maskCanvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+    maskHistoryRef.current = [];
+    setHasMaskStrokes(false);
+  }, [maskCanvasRef]);
 
   const undoLastStroke = useCallback(() => {
     const maskCanvas = maskCanvasRef.current;
     if (!maskCanvas) return;
     const ctx = maskCanvas.getContext('2d');
     if (!ctx) return;
-    ctx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
-    setState(prev => ({ ...prev, hasMaskStrokes: false }));
-  }, []);
+    const history = maskHistoryRef.current;
+    if (history.length === 0) {
+      ctx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+      setHasMaskStrokes(false);
+      return;
+    }
+    const prev = history.pop()!;
+    ctx.putImageData(prev, 0, 0);
+    maskHistoryRef.current = history;
+    drawMaskToCanvas();
+  }, [maskCanvasRef, drawMaskToCanvas]);
 
-  const removeBackground = useCallback(() => {
-    const img = imageRef.current;
-    const imageCanvas = imageCanvasRef.current;
-    const maskCanvas = maskCanvasRef.current;
-    if (!img || !imageCanvas || !maskCanvas) return;
+  const loadImage = useCallback(
+    (file: File) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        imageRef.current = img;
 
-    setState(prev => ({ ...prev, isProcessing: true }));
-
-    try {
-      const resultCanvas = document.createElement('canvas');
-      resultCanvas.width = imageCanvas.width;
-      resultCanvas.height = imageCanvas.height;
-      const ctx = resultCanvas.getContext('2d')!;
-
-      ctx.drawImage(imageCanvas, 0, 0);
-
-      const imageData = ctx.getImageData(0, 0, resultCanvas.width, resultCanvas.height);
-      const maskCtx = maskCanvas.getContext('2d')!;
-      const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
-
-      const data = imageData.data;
-      const mask = maskData.data;
-
-      let bgR = 255, bgG = 255, bgB = 255;
-      // Read bgColor from state via closure — use a ref approach
-      setState(prev => {
-        const { outputMode, bgColor } = prev;
-        if (outputMode === 'color') {
-          const hex = bgColor.replace('#', '');
-          bgR = parseInt(hex.substring(0, 2), 16);
-          bgG = parseInt(hex.substring(2, 4), 16);
-          bgB = parseInt(hex.substring(4, 6), 16);
+        const maxDim = 600;
+        let w = img.naturalWidth;
+        let h = img.naturalHeight;
+        if (w > maxDim || h > maxDim) {
+          const scale = maxDim / Math.max(w, h);
+          w = Math.round(w * scale);
+          h = Math.round(h * scale);
         }
 
-        for (let i = 0; i < data.length; i += 4) {
-          const maskAlpha = mask[i + 3];
-          const maskR = mask[i];
-          if (maskAlpha > 0 && maskR > 100) {
-            if (outputMode === 'transparent') {
-              data[i + 3] = 0;
-            } else {
-              data[i] = bgR;
-              data[i + 1] = bgG;
-              data[i + 2] = bgB;
-              data[i + 3] = 255;
+        // Store pending draw dimensions so the component's useEffect can
+        // draw to the canvas after it mounts (canvasRef may be null here
+        // because the canvas is conditionally rendered based on originalDataUrl).
+        pendingDrawDimsRef.current = { w, h };
+
+        setDisplaySize({ width: w, height: h });
+        setResultDataUrl(null);
+        setHasMaskStrokes(false);
+        maskHistoryRef.current = [];
+        setCropBox(null);
+        setCropMode(false);
+        setBrushActive(false);
+        setZoom(1);
+        setRotation(0);
+        // Setting originalDataUrl last triggers the re-render that mounts the canvas.
+        setOriginalDataUrl(url);
+      };
+      img.onerror = () => {
+        // Failed to load image — silently ignore
+      };
+      img.src = url;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  // Re-draw when zoom or rotation changes (image already loaded)
+  useEffect(() => {
+    if (imageRef.current && originalDataUrl) {
+      drawImageToCanvas();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zoom, rotation]);
+
+  const removeBackground = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    setIsProcessing(true);
+
+    setTimeout(() => {
+      try {
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+
+        const width = canvas.width;
+        const height = canvas.height;
+        const visited = new Uint8Array(width * height);
+        const queue: number[] = [];
+
+        const getIdx = (x: number, y: number) => (y * width + x) * 4;
+        const pixelIdx = (x: number, y: number) => y * width + x;
+
+        const cornerColors: number[][] = [];
+        const corners = [
+          [0, 0], [width - 1, 0], [0, height - 1], [width - 1, height - 1],
+          [Math.floor(width / 2), 0], [0, Math.floor(height / 2)],
+        ];
+        for (const [cx, cy] of corners) {
+          const i = getIdx(cx, cy);
+          cornerColors.push([data[i], data[i + 1], data[i + 2]]);
+        }
+
+        const avgBg = cornerColors
+          .reduce((acc, c) => [acc[0] + c[0], acc[1] + c[1], acc[2] + c[2]], [0, 0, 0])
+          .map((v) => v / cornerColors.length);
+
+        const colorDist = (r: number, g: number, b: number) =>
+          Math.sqrt((r - avgBg[0]) ** 2 + (g - avgBg[1]) ** 2 + (b - avgBg[2]) ** 2);
+
+        const threshold = 60;
+
+        for (let x = 0; x < width; x++) {
+          for (const y of [0, height - 1]) {
+            const i = getIdx(x, y);
+            if (!visited[pixelIdx(x, y)] && colorDist(data[i], data[i + 1], data[i + 2]) < threshold) {
+              queue.push(pixelIdx(x, y));
+              visited[pixelIdx(x, y)] = 1;
+            }
+          }
+        }
+        for (let y = 0; y < height; y++) {
+          for (const x of [0, width - 1]) {
+            const i = getIdx(x, y);
+            if (!visited[pixelIdx(x, y)] && colorDist(data[i], data[i + 1], data[i + 2]) < threshold) {
+              queue.push(pixelIdx(x, y));
+              visited[pixelIdx(x, y)] = 1;
+            }
+          }
+        }
+
+        while (queue.length > 0) {
+          const idx = queue.shift()!;
+          const x = idx % width;
+          const y = Math.floor(idx / width);
+          const i = getIdx(x, y);
+
+          if (outputMode === 'transparent') {
+            data[i + 3] = 0;
+          } else {
+            const hex = bgColor.replace('#', '');
+            data[i] = parseInt(hex.slice(0, 2), 16);
+            data[i + 1] = parseInt(hex.slice(2, 4), 16);
+            data[i + 2] = parseInt(hex.slice(4, 6), 16);
+          }
+
+          const neighbors = [
+            [x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1],
+          ];
+          for (const [nx, ny] of neighbors) {
+            if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+            const ni = getIdx(nx, ny);
+            if (
+              !visited[pixelIdx(nx, ny)] &&
+              colorDist(data[ni], data[ni + 1], data[ni + 2]) < threshold
+            ) {
+              visited[pixelIdx(nx, ny)] = 1;
+              queue.push(pixelIdx(nx, ny));
             }
           }
         }
 
         ctx.putImageData(imageData, 0, 0);
-        const resultDataUrl = resultCanvas.toDataURL('image/png', 1.0);
-        return { ...prev, resultDataUrl, isProcessing: false };
-      });
-    } catch {
-      setState(prev => ({ ...prev, isProcessing: false }));
-    }
-  }, []);
+        const result = canvas.toDataURL('image/png');
+        setResultDataUrl(result);
+      } finally {
+        setIsProcessing(false);
+      }
+    }, 50);
+  }, [canvasRef, outputMode, bgColor]);
 
   const autoDetectBackground = useCallback(() => {
-    const imageCanvas = imageCanvasRef.current;
+    removeBackground();
+  }, [removeBackground]);
+
+  const applyCrop = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !cropBox) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const scaleX = canvas.width / (displaySize?.width ?? canvas.width);
+    const scaleY = canvas.height / (displaySize?.height ?? canvas.height);
+
+    const sx = Math.round(cropBox.x * scaleX);
+    const sy = Math.round(cropBox.y * scaleY);
+    const sw = Math.round(cropBox.w * scaleX);
+    const sh = Math.round(cropBox.h * scaleY);
+
+    if (sw <= 0 || sh <= 0) return;
+
+    const imageData = ctx.getImageData(sx, sy, sw, sh);
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = sw;
+    tempCanvas.height = sh;
+    const tempCtx = tempCanvas.getContext('2d')!;
+    tempCtx.putImageData(imageData, 0, 0);
+
+    canvas.width = sw;
+    canvas.height = sh;
+    ctx.drawImage(tempCanvas, 0, 0);
+
+    setDisplaySize({ width: sw, height: sh });
+
     const maskCanvas = maskCanvasRef.current;
-    if (!imageCanvas || !maskCanvas) return;
-
-    setState(prev => ({ ...prev, isProcessing: true }));
-
-    try {
-      const ctx = imageCanvas.getContext('2d')!;
-      const maskCtx = maskCanvas.getContext('2d')!;
-      const w = imageCanvas.width;
-      const h = imageCanvas.height;
-
-      const imageData = ctx.getImageData(0, 0, w, h);
-      const data = imageData.data;
-
-      const samplePoints = [
-        [0, 0], [w - 1, 0], [0, h - 1], [w - 1, h - 1],
-        [Math.floor(w / 2), 0], [0, Math.floor(h / 2)],
-      ];
-
-      let totalR = 0, totalG = 0, totalB = 0;
-      for (const [x, y] of samplePoints) {
-        const idx = (y * w + x) * 4;
-        totalR += data[idx];
-        totalG += data[idx + 1];
-        totalB += data[idx + 2];
-      }
-      const avgR = totalR / samplePoints.length;
-      const avgG = totalG / samplePoints.length;
-      const avgB = totalB / samplePoints.length;
-
-      const tolerance = 40;
-      const visited = new Uint8Array(w * h);
-      const queue: number[] = [];
-
-      const colorMatch = (idx: number) => {
-        const dr = data[idx] - avgR;
-        const dg = data[idx + 1] - avgG;
-        const db = data[idx + 2] - avgB;
-        return Math.sqrt(dr * dr + dg * dg + db * db) < tolerance;
-      };
-
-      for (let x = 0; x < w; x++) {
-        const topIdx = x;
-        const botIdx = (h - 1) * w + x;
-        if (!visited[topIdx] && colorMatch(topIdx * 4)) { queue.push(topIdx); visited[topIdx] = 1; }
-        if (!visited[botIdx] && colorMatch(botIdx * 4)) { queue.push(botIdx); visited[botIdx] = 1; }
-      }
-      for (let y = 0; y < h; y++) {
-        const leftIdx = y * w;
-        const rightIdx = y * w + w - 1;
-        if (!visited[leftIdx] && colorMatch(leftIdx * 4)) { queue.push(leftIdx); visited[leftIdx] = 1; }
-        if (!visited[rightIdx] && colorMatch(rightIdx * 4)) { queue.push(rightIdx); visited[rightIdx] = 1; }
-      }
-
-      while (queue.length > 0) {
-        const idx = queue.pop()!;
-        const x = idx % w;
-        const y = Math.floor(idx / w);
-
-        const neighbors = [
-          x > 0 ? idx - 1 : -1,
-          x < w - 1 ? idx + 1 : -1,
-          y > 0 ? idx - w : -1,
-          y < h - 1 ? idx + w : -1,
-        ];
-
-        for (const n of neighbors) {
-          if (n >= 0 && !visited[n] && colorMatch(n * 4)) {
-            visited[n] = 1;
-            queue.push(n);
-          }
-        }
-      }
-
-      maskCtx.clearRect(0, 0, w, h);
-      const maskImageData = maskCtx.createImageData(w, h);
-      const maskDataArr = maskImageData.data;
-      for (let i = 0; i < visited.length; i++) {
-        if (visited[i]) {
-          maskDataArr[i * 4] = 255;
-          maskDataArr[i * 4 + 1] = 0;
-          maskDataArr[i * 4 + 2] = 0;
-          maskDataArr[i * 4 + 3] = 128;
-        }
-      }
-      maskCtx.putImageData(maskImageData, 0, 0);
-
-      setState(prev => ({ ...prev, isProcessing: false, hasMaskStrokes: true }));
-    } catch {
-      setState(prev => ({ ...prev, isProcessing: false }));
+    if (maskCanvas) {
+      maskCanvas.width = sw;
+      maskCanvas.height = sh;
     }
-  }, []);
+
+    setCropMode(false);
+    setCropBox(null);
+  }, [canvasRef, maskCanvasRef, cropBox, displaySize]);
 
   const processManualErase = useCallback(() => {
-    const imageCanvas = imageCanvasRef.current;
+    const canvas = canvasRef.current;
     const maskCanvas = maskCanvasRef.current;
-    if (!imageCanvas || !maskCanvas) return;
+    if (!canvas || !maskCanvas) return;
 
-    setState(prev => {
-      const { outputMode, bgColor, resultDataUrl } = prev;
+    const ctx = canvas.getContext('2d');
+    const maskCtx = maskCanvas.getContext('2d');
+    if (!ctx || !maskCtx) return;
 
-      const applyErase = (sourceCanvas: HTMLCanvasElement) => {
-        const resultCanvas = document.createElement('canvas');
-        resultCanvas.width = sourceCanvas.width;
-        resultCanvas.height = sourceCanvas.height;
-        const resultCtx = resultCanvas.getContext('2d')!;
-        resultCtx.drawImage(sourceCanvas, 0, 0);
+    maskHistoryRef.current.push(
+      maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height)
+    );
 
-        const maskCtx = maskCanvas.getContext('2d')!;
-        const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
-        const resultData = resultCtx.getImageData(0, 0, resultCanvas.width, resultCanvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
 
-        const scaleX = resultCanvas.width / maskCanvas.width;
-        const scaleY = resultCanvas.height / maskCanvas.height;
-
-        let bgR = 255, bgG = 255, bgB = 255;
-        if (outputMode === 'color') {
+    for (let i = 0; i < imageData.data.length; i += 4) {
+      const maskAlpha = maskData.data[i + 3];
+      if (maskAlpha > 0) {
+        if (outputMode === 'transparent') {
+          imageData.data[i + 3] = 0;
+        } else {
           const hex = bgColor.replace('#', '');
-          bgR = parseInt(hex.substring(0, 2), 16);
-          bgG = parseInt(hex.substring(2, 4), 16);
-          bgB = parseInt(hex.substring(4, 6), 16);
+          imageData.data[i] = parseInt(hex.slice(0, 2), 16);
+          imageData.data[i + 1] = parseInt(hex.slice(2, 4), 16);
+          imageData.data[i + 2] = parseInt(hex.slice(4, 6), 16);
+          imageData.data[i + 3] = 255;
         }
-
-        for (let my = 0; my < maskCanvas.height; my++) {
-          for (let mx = 0; mx < maskCanvas.width; mx++) {
-            const maskIdx = (my * maskCanvas.width + mx) * 4;
-            if (maskData.data[maskIdx + 3] > 0) {
-              const rx = Math.round(mx * scaleX);
-              const ry = Math.round(my * scaleY);
-              const rw = Math.ceil(scaleX);
-              const rh = Math.ceil(scaleY);
-
-              for (let dy = 0; dy < rh; dy++) {
-                for (let dx = 0; dx < rw; dx++) {
-                  const px = rx + dx;
-                  const py = ry + dy;
-                  if (px < resultCanvas.width && py < resultCanvas.height) {
-                    const rIdx = (py * resultCanvas.width + px) * 4;
-                    if (outputMode === 'transparent') {
-                      resultData.data[rIdx + 3] = 0;
-                    } else {
-                      resultData.data[rIdx] = bgR;
-                      resultData.data[rIdx + 1] = bgG;
-                      resultData.data[rIdx + 2] = bgB;
-                      resultData.data[rIdx + 3] = 255;
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        resultCtx.putImageData(resultData, 0, 0);
-        return resultCanvas.toDataURL('image/png', 1.0);
-      };
-
-      // If there's already a result, apply erase on top of it
-      if (resultDataUrl) {
-        const tempImg = new Image();
-        tempImg.onload = () => {
-          const tempCanvas = document.createElement('canvas');
-          tempCanvas.width = tempImg.naturalWidth;
-          tempCanvas.height = tempImg.naturalHeight;
-          const tempCtx = tempCanvas.getContext('2d')!;
-          tempCtx.drawImage(tempImg, 0, 0);
-          const newUrl = applyErase(tempCanvas);
-          const maskCtx = maskCanvas.getContext('2d');
-          if (maskCtx) maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
-          setState(s => ({ ...s, resultDataUrl: newUrl, hasMaskStrokes: false }));
-        };
-        tempImg.src = resultDataUrl;
-        // Return unchanged state for now; async update will follow
-        return prev;
-      } else {
-        const newUrl = applyErase(imageCanvas);
-        const maskCtx = maskCanvas.getContext('2d');
-        if (maskCtx) maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
-        return { ...prev, resultDataUrl: newUrl, hasMaskStrokes: false };
       }
-    });
-  }, []);
-
-  const applyCrop = useCallback((imageCanvas: HTMLCanvasElement, cropBox: CropBox): HTMLImageElement => {
-    const croppedCanvas = document.createElement('canvas');
-    croppedCanvas.width = cropBox.w;
-    croppedCanvas.height = cropBox.h;
-    const ctx = croppedCanvas.getContext('2d')!;
-    ctx.drawImage(imageCanvas, cropBox.x, cropBox.y, cropBox.w, cropBox.h, 0, 0, cropBox.w, cropBox.h);
-    const dataUrl = croppedCanvas.toDataURL('image/png');
-    const img = new window.Image();
-    img.src = dataUrl;
-    return img;
-  }, []);
-
-  const reset = useCallback((maskCanvas?: HTMLCanvasElement | null) => {
-    const mc = maskCanvas ?? maskCanvasRef.current;
-    if (mc) {
-      const ctx = mc.getContext('2d');
-      if (ctx) ctx.clearRect(0, 0, mc.width, mc.height);
     }
-    imageRef.current = null;
-    setState({
-      imageDataUrl: null,
-      resultDataUrl: null,
-      brushState: DEFAULT_BRUSH,
-      outputMode: 'transparent',
-      bgColor: '#ffffff',
-      zoom: 1,
-      rotation: 0,
-      cropBox: null,
-      isProcessing: false,
-      hasMaskStrokes: false,
-    });
-  }, []);
 
-  const setResultDataUrl = useCallback((dataUrl: string | null) => {
-    setState(prev => ({ ...prev, resultDataUrl: dataUrl }));
-  }, []);
+    ctx.putImageData(imageData, 0, 0);
+    maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+    setHasMaskStrokes(false);
+
+    const result = canvas.toDataURL('image/png');
+    setResultDataUrl(result);
+  }, [canvasRef, maskCanvasRef, outputMode, bgColor]);
+
+  const reset = useCallback(() => {
+    setOriginalDataUrl(null);
+    setResultDataUrl(null);
+    setIsProcessing(false);
+    setZoom(1);
+    setRotation(0);
+    setCropMode(false);
+    setCropBox(null);
+    setBrushActive(false);
+    setHasMaskStrokes(false);
+    setDisplaySize(null);
+    maskHistoryRef.current = [];
+    imageRef.current = null;
+    pendingDrawDimsRef.current = null;
+
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      ctx?.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    const maskCanvas = maskCanvasRef.current;
+    if (maskCanvas) {
+      const ctx = maskCanvas.getContext('2d');
+      ctx?.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+    }
+  }, [canvasRef, maskCanvasRef]);
 
   return {
-    state,
-    imageCanvasRef,
-    maskCanvasRef,
-    resultCanvasRef,
+    originalDataUrl,
+    resultDataUrl,
+    isProcessing,
+    outputMode,
+    bgColor,
+    zoom,
+    rotation,
+    cropMode,
+    cropBox,
+    brushActive,
+    brushSize,
+    brushMode,
+    hasMaskStrokes,
+    displaySize,
+    setOutputMode,
+    setBgColor,
+    setZoom,
+    setRotation,
+    setCropMode,
+    setCropBox,
+    setBrushActive,
+    setBrushSize,
+    setBrushMode,
     loadImage,
-    updateBrushState,
-    updateOutputMode,
-    updateBgColor,
-    updateZoom,
-    updateRotation,
-    updateCropBox,
-    saveMaskSnapshot,
-    undoLastStroke,
     removeBackground,
     autoDetectBackground,
-    processManualErase,
     applyCrop,
+    processManualErase,
     reset,
     setResultDataUrl,
+    drawImageToCanvas,
+    drawMaskToCanvas,
+    clearMask,
+    undoLastStroke,
   };
 }

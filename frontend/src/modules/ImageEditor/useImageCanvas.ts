@@ -11,6 +11,15 @@ export interface TextLayer {
   color: string;
   shadow: boolean;
   outline: boolean;
+  // Background color
+  backgroundEnabled: boolean;
+  backgroundColor: string;
+  // Detailed shadow controls
+  shadowEnabled: boolean;
+  shadowColor: string;
+  shadowBlur: number;
+  shadowOffsetX: number;
+  shadowOffsetY: number;
 }
 
 export interface ImageState {
@@ -144,15 +153,46 @@ export function useImageCanvas() {
       ctx.translate(layer.x, layer.y);
       ctx.rotate((layer.rotation * Math.PI) / 180);
       ctx.font = `${layer.fontSize}px ${layer.fontFamily}`;
-      ctx.fillStyle = layer.color;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
-      if (layer.shadow) {
-        ctx.shadowColor = 'rgba(0,0,0,0.7)';
-        ctx.shadowBlur = 6;
-        ctx.shadowOffsetX = 2;
-        ctx.shadowOffsetY = 2;
+      // Measure text for background rect
+      const metrics = ctx.measureText(layer.text);
+      const textWidth = metrics.width;
+      const textHeight = layer.fontSize;
+
+      // Draw background rectangle if enabled
+      if (layer.backgroundEnabled) {
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        const padding = layer.fontSize * 0.2;
+        ctx.fillStyle = layer.backgroundColor;
+        ctx.fillRect(
+          -textWidth / 2 - padding,
+          -textHeight / 2 - padding,
+          textWidth + padding * 2,
+          textHeight + padding * 2
+        );
+      }
+
+      // Apply shadow (detailed controls take precedence over legacy shadow bool)
+      const useShadow = layer.shadowEnabled !== undefined ? layer.shadowEnabled : layer.shadow;
+      if (useShadow) {
+        const shadowColor = layer.shadowColor || 'rgba(0,0,0,0.7)';
+        const shadowBlur = layer.shadowBlur !== undefined ? layer.shadowBlur : 6;
+        const shadowOffsetX = layer.shadowOffsetX !== undefined ? layer.shadowOffsetX : 2;
+        const shadowOffsetY = layer.shadowOffsetY !== undefined ? layer.shadowOffsetY : 2;
+        ctx.shadowColor = shadowColor;
+        ctx.shadowBlur = shadowBlur;
+        ctx.shadowOffsetX = shadowOffsetX;
+        ctx.shadowOffsetY = shadowOffsetY;
+      } else {
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
       }
 
       if (layer.outline) {
@@ -161,6 +201,7 @@ export function useImageCanvas() {
         ctx.strokeText(layer.text, 0, 0);
       }
 
+      ctx.fillStyle = layer.color;
       ctx.fillText(layer.text, 0, 0);
       ctx.restore();
     });

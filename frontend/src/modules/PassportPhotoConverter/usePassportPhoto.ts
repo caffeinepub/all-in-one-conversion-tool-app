@@ -26,6 +26,16 @@ export interface TextConfig {
   bold: boolean;
   italic: boolean;
   align: 'left' | 'center' | 'right';
+  // Text background
+  textBgEnabled: boolean;
+  textBgColor: string;
+  textBgOpacity: number;
+  // Text shadow
+  textShadowEnabled: boolean;
+  textShadowColor: string;
+  textShadowBlur: number;
+  textShadowOffsetX: number;
+  textShadowOffsetY: number;
 }
 
 export interface PassportPhotoState {
@@ -46,7 +56,6 @@ export function mmToPx(mm: number): number {
   return Math.round((mm / 25.4) * DPI);
 }
 
-// A4 dimensions in mm
 export const A4_WIDTH_MM = 210;
 export const A4_HEIGHT_MM = 297;
 export const A4_MARGIN_MM = 5;
@@ -69,6 +78,14 @@ export function usePassportPhoto() {
       bold: false,
       italic: false,
       align: 'center',
+      textBgEnabled: false,
+      textBgColor: '#ffffff',
+      textBgOpacity: 0.7,
+      textShadowEnabled: false,
+      textShadowColor: '#000000',
+      textShadowBlur: 4,
+      textShadowOffsetX: 2,
+      textShadowOffsetY: 2,
     },
     exportFormat: 'png',
     isProcessing: false,
@@ -131,53 +148,71 @@ export function usePassportPhoto() {
   }, []);
 
   const processImage = useCallback(async (img: HTMLImageElement) => {
+    if (!img || img.naturalWidth === 0 || img.naturalHeight === 0) return;
+
     setState(prev => ({ ...prev, isProcessing: true }));
 
-    const { widthMm, heightMm } = state.selectedPreset === 'custom'
-      ? { widthMm: state.customWidth, heightMm: state.customHeight }
-      : SIZE_OPTIONS.find(o => o.id === state.selectedPreset) ?? { widthMm: 35, heightMm: 45 };
+    try {
+      const { widthMm, heightMm } = state.selectedPreset === 'custom'
+        ? { widthMm: state.customWidth, heightMm: state.customHeight }
+        : SIZE_OPTIONS.find(o => o.id === state.selectedPreset) ?? { widthMm: 35, heightMm: 45 };
 
-    // Use full 300 DPI for high-quality output
-    const targetW = mmToPx(widthMm);
-    const targetH = mmToPx(heightMm);
+      const targetW = mmToPx(widthMm);
+      const targetH = mmToPx(heightMm);
 
-    const canvas = document.createElement('canvas');
-    canvas.width = targetW;
-    canvas.height = targetH;
-    const ctx = canvas.getContext('2d')!;
+      if (targetW <= 0 || targetH <= 0) {
+        setState(prev => ({ ...prev, isProcessing: false }));
+        return;
+      }
 
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
+      const canvas = document.createElement('canvas');
+      canvas.width = targetW;
+      canvas.height = targetH;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        setState(prev => ({ ...prev, isProcessing: false }));
+        return;
+      }
 
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, targetW, targetH);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
 
-    const srcAspect = img.width / img.height;
-    const tgtAspect = targetW / targetH;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, targetW, targetH);
 
-    let sx = 0, sy = 0, sw = img.width, sh = img.height;
-    if (srcAspect > tgtAspect) {
-      sw = img.height * tgtAspect;
-      sx = (img.width - sw) / 2;
-    } else {
-      sh = img.width / tgtAspect;
-      sy = (img.height - sh) / 2;
+      const srcAspect = img.width / img.height;
+      const tgtAspect = targetW / targetH;
+
+      let sx = 0, sy = 0, sw = img.width, sh = img.height;
+      if (srcAspect > tgtAspect) {
+        sw = img.height * tgtAspect;
+        sx = (img.width - sw) / 2;
+      } else {
+        sh = img.width / tgtAspect;
+        sy = (img.height - sh) / 2;
+      }
+
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
+
+      applyEnhancements(ctx, targetW, targetH);
+
+      const dataUrl = canvas.toDataURL('image/png', 1.0);
+      if (!dataUrl || dataUrl === 'data:,') {
+        setState(prev => ({ ...prev, isProcessing: false }));
+        return;
+      }
+
+      processedCanvasRef.current = canvas;
+
+      setState(prev => ({
+        ...prev,
+        originalImage: img,
+        processedDataUrl: dataUrl,
+        isProcessing: false,
+      }));
+    } catch {
+      setState(prev => ({ ...prev, isProcessing: false }));
     }
-
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
-
-    applyEnhancements(ctx, targetW, targetH);
-
-    // Export at maximum quality (1.0)
-    const dataUrl = canvas.toDataURL('image/png', 1.0);
-    processedCanvasRef.current = canvas;
-
-    setState(prev => ({
-      ...prev,
-      originalImage: img,
-      processedDataUrl: dataUrl,
-      isProcessing: false,
-    }));
   }, [state.selectedPreset, state.customWidth, state.customHeight, applyEnhancements]);
 
   const reprocessImage = useCallback(() => {
@@ -206,15 +241,11 @@ export function usePassportPhoto() {
     setState(prev => ({ ...prev, exportFormat: format }));
   }, []);
 
-  /**
-   * Renders the A4 sheet canvas at full 300 DPI for high-quality export.
-   */
   const renderA4Canvas = useCallback((canvas: HTMLCanvasElement): void => {
-    if (!state.processedDataUrl) return;
+    if (!state.processedDataUrl || !canvas) return;
 
     const { widthMm, heightMm } = getCurrentSize();
 
-    // Use full 300 DPI for export quality
     const exportDPI = 300;
     const scale = exportDPI / 25.4;
 
@@ -227,7 +258,8 @@ export function usePassportPhoto() {
 
     canvas.width = a4W;
     canvas.height = a4H;
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
@@ -238,18 +270,16 @@ export function usePassportPhoto() {
     const img = new window.Image();
     img.src = state.processedDataUrl;
 
-    let x = marginPx;
-    let y = marginPx;
-    let count = 0;
-
     const textH = state.textConfig.enabled && state.textConfig.content
       ? Math.round(state.textConfig.fontSize * (exportDPI / 72) + 8)
       : 0;
 
     const drawAll = () => {
-      x = marginPx;
-      y = marginPx;
-      count = 0;
+      if (!img.naturalWidth || !img.naturalHeight) return;
+
+      let x = marginPx;
+      let y = marginPx;
+      let count = 0;
 
       while (count < state.copyCount) {
         if (x + photoW > a4W - marginPx) {
@@ -261,14 +291,57 @@ export function usePassportPhoto() {
         ctx.drawImage(img, x, y, photoW, photoH);
 
         if (state.textConfig.enabled && state.textConfig.content) {
-          const { fontFamily, fontSize, color, bold, italic, align } = state.textConfig;
+          const {
+            fontFamily, fontSize, color, bold, italic, align,
+            textBgEnabled, textBgColor, textBgOpacity,
+            textShadowEnabled, textShadowColor, textShadowBlur,
+            textShadowOffsetX, textShadowOffsetY,
+          } = state.textConfig;
           const scaledFontSize = Math.round(fontSize * (exportDPI / 72));
           const fontStyle = `${italic ? 'italic ' : ''}${bold ? 'bold ' : ''}${scaledFontSize}px ${fontFamily}`;
           ctx.font = fontStyle;
+
+          const textX = align === 'left' ? x : align === 'right' ? x + photoW : x + photoW / 2;
+          const textY = y + photoH + scaledFontSize + 2;
+
+          const metrics = ctx.measureText(state.textConfig.content);
+          const textWidth = metrics.width;
+          const bgPadX = 6;
+          const bgPadY = 4;
+
+          if (textBgEnabled) {
+            const bgX = align === 'left'
+              ? x - bgPadX
+              : align === 'right'
+              ? x + photoW - textWidth - bgPadX
+              : x + photoW / 2 - textWidth / 2 - bgPadX;
+            const bgY = textY - scaledFontSize - bgPadY;
+            const bgW = textWidth + bgPadX * 2;
+            const bgH = scaledFontSize + bgPadY * 2;
+
+            ctx.save();
+            ctx.globalAlpha = textBgOpacity;
+            ctx.fillStyle = textBgColor;
+            ctx.fillRect(bgX, bgY, bgW, bgH);
+            ctx.restore();
+          }
+
+          if (textShadowEnabled) {
+            ctx.shadowColor = textShadowColor;
+            ctx.shadowBlur = textShadowBlur;
+            ctx.shadowOffsetX = textShadowOffsetX;
+            ctx.shadowOffsetY = textShadowOffsetY;
+          }
+
           ctx.fillStyle = color;
           ctx.textAlign = align;
-          const textX = align === 'left' ? x : align === 'right' ? x + photoW : x + photoW / 2;
-          ctx.fillText(state.textConfig.content, textX, y + photoH + scaledFontSize + 2, photoW);
+          ctx.fillText(state.textConfig.content, textX, textY, photoW);
+
+          // Reset shadow
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
         }
 
         x += photoW + gapPx;
@@ -280,6 +353,7 @@ export function usePassportPhoto() {
       drawAll();
     } else {
       img.onload = drawAll;
+      img.onerror = () => { /* silently ignore */ };
     }
   }, [state.processedDataUrl, state.copyCount, state.textConfig, getCurrentSize]);
 

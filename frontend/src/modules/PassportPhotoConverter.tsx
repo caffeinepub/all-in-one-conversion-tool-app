@@ -6,9 +6,10 @@ import CopyGridPanel from './PassportPhotoConverter/CopyGridPanel';
 import TextCustomizationPanel from './PassportPhotoConverter/TextCustomizationPanel';
 import ExportPanel from './PassportPhotoConverter/ExportPanel';
 
-export default function PassportPhotoConverter() {
+export function PassportPhotoConverter() {
   const {
     state,
+    processedCanvasRef,
     processImage,
     reprocessImage,
     updatePreset,
@@ -21,7 +22,6 @@ export default function PassportPhotoConverter() {
   } = usePassportPhoto();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -29,11 +29,14 @@ export default function PassportPhotoConverter() {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const dataUrl = ev.target?.result as string;
+      if (!dataUrl) return;
       const img = new window.Image();
       img.onload = () => processImage(img);
+      img.onerror = () => toast.error('Failed to load image');
       img.src = dataUrl;
     };
     reader.readAsDataURL(file);
+    e.target.value = '';
   }, [processImage]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -46,8 +49,10 @@ export default function PassportPhotoConverter() {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const dataUrl = ev.target?.result as string;
+      if (!dataUrl) return;
       const img = new window.Image();
       img.onload = () => processImage(img);
+      img.onerror = () => toast.error('Failed to load image');
       img.src = dataUrl;
     };
     reader.readAsDataURL(file);
@@ -60,7 +65,6 @@ export default function PassportPhotoConverter() {
     }
   }, [updatePreset, reprocessImage, state.originalImage]);
 
-  // Derive widthMm and heightMm for CopyGridPanel
   const currentSize = state.selectedPreset === 'custom'
     ? { widthMm: state.customWidth, heightMm: state.customHeight }
     : SIZE_OPTIONS.find(o => o.id === state.selectedPreset) ?? { widthMm: 35, heightMm: 45 };
@@ -88,6 +92,10 @@ export default function PassportPhotoConverter() {
                   src={state.processedDataUrl}
                   alt="Passport photo preview"
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    target.style.display = 'none';
+                  }}
                 />
               </div>
             </div>
@@ -150,19 +158,18 @@ export default function PassportPhotoConverter() {
               onDrop={handleDrop}
               onDragOver={e => e.preventDefault()}
             >
-              <Upload className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground text-center">
-                {state.originalImage ? 'Click to replace photo' : 'Click or drag to upload'}
+              <Upload className="w-5 h-5 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground text-center">
+                {state.originalImage ? 'Replace photo' : 'Drop photo here or click'}
               </p>
-              <p className="text-xs text-muted-foreground/60 text-center mt-1">JPG, PNG, WEBP</p>
             </div>
           </div>
 
           {/* Size Preset */}
           <div className="glass-card p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-foreground">Photo Size</h3>
+            <h3 className="text-sm font-semibold text-foreground">Size Preset</h3>
             <div className="space-y-1.5">
-              {SIZE_OPTIONS.map(opt => (
+              {SIZE_OPTIONS.filter(o => o.id !== 'custom').map(opt => (
                 <button
                   key={opt.id}
                   onClick={() => handlePresetChange(opt.id)}
@@ -171,29 +178,36 @@ export default function PassportPhotoConverter() {
                   {opt.label}
                 </button>
               ))}
+              <button
+                onClick={() => handlePresetChange('custom')}
+                className={`tool-btn w-full justify-start text-xs ${state.selectedPreset === 'custom' ? 'tool-btn-active' : ''}`}
+              >
+                Custom Size
+              </button>
             </div>
+
             {state.selectedPreset === 'custom' && (
-              <div className="grid grid-cols-2 gap-2 pt-1">
-                <div>
-                  <label className="text-xs text-muted-foreground">Width (mm)</label>
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-muted-foreground w-16">Width mm</label>
                   <input
                     type="number"
                     min={10}
-                    max={100}
+                    max={200}
                     value={state.customWidth}
                     onChange={e => updateCustomSize(Number(e.target.value), state.customHeight)}
-                    className="w-full h-8 text-sm rounded-md border border-input bg-background px-2 mt-1"
+                    className="flex-1 h-7 rounded border border-border bg-background px-2 text-xs"
                   />
                 </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Height (mm)</label>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-muted-foreground w-16">Height mm</label>
                   <input
                     type="number"
                     min={10}
-                    max={150}
+                    max={200}
                     value={state.customHeight}
                     onChange={e => updateCustomSize(state.customWidth, Number(e.target.value))}
-                    className="w-full h-8 text-sm rounded-md border border-input bg-background px-2 mt-1"
+                    className="flex-1 h-7 rounded border border-border bg-background px-2 text-xs"
                   />
                 </div>
               </div>
@@ -202,30 +216,34 @@ export default function PassportPhotoConverter() {
 
           {/* Copy Count */}
           <div className="glass-card p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-foreground">Number of Copies</h3>
+            <h3 className="text-sm font-semibold text-foreground">Copies on A4</h3>
             <div className="flex items-center gap-3">
               <button
                 onClick={() => updateCopyCount(state.copyCount - 1)}
-                className="tool-btn w-9 h-9 p-0 justify-center flex-shrink-0"
+                className="tool-btn w-8 h-8 p-0 justify-center"
               >
-                <Minus className="w-4 h-4" />
+                <Minus className="w-3 h-3" />
               </button>
-              <span className="flex-1 text-center font-bold text-lg tabular-nums">{state.copyCount}</span>
+              <span className="flex-1 text-center font-bold text-lg text-foreground">
+                {state.copyCount}
+              </span>
               <button
                 onClick={() => updateCopyCount(state.copyCount + 1)}
-                className="tool-btn w-9 h-9 p-0 justify-center flex-shrink-0"
+                className="tool-btn w-8 h-8 p-0 justify-center"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-3 h-3" />
               </button>
             </div>
-            <p className="text-xs text-muted-foreground text-center">Copies per A4 sheet (max 40)</p>
           </div>
 
-          {/* Text Customization */}
-          <TextCustomizationPanel
-            textConfig={state.textConfig}
-            onUpdate={updateTextConfig}
-          />
+          {/* Text Overlay */}
+          <div className="glass-card p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">Text Overlay</h3>
+            <TextCustomizationPanel
+              textConfig={state.textConfig}
+              onUpdate={updateTextConfig}
+            />
+          </div>
 
           {/* Export */}
           <ExportPanel
@@ -234,11 +252,11 @@ export default function PassportPhotoConverter() {
             renderA4Canvas={renderA4Canvas}
             getIndividualPhotoBlobs={getIndividualPhotoBlobs}
             hasPhoto={!!state.processedDataUrl}
-            canvasRef={canvasRef}
+            canvasRef={processedCanvasRef}
           />
         </div>
 
-        {/* Right Column: A4 Grid Preview */}
+        {/* Right Column: A4 Preview */}
         <div className="flex-1 min-w-0">
           <CopyGridPanel
             processedDataUrl={state.processedDataUrl}
@@ -246,10 +264,12 @@ export default function PassportPhotoConverter() {
             widthMm={currentSize.widthMm}
             heightMm={currentSize.heightMm}
             textConfig={state.textConfig}
-            canvasRef={canvasRef}
+            canvasRef={processedCanvasRef}
           />
         </div>
       </div>
     </div>
   );
 }
+
+export default PassportPhotoConverter;

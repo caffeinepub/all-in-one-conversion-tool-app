@@ -1,35 +1,50 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-03-02T12:36:22.259Z",
-  "summary": "The diff implements the Paint-to-Select + Erase Button workflow for the Background Remover module. Key files modified are BackgroundRemover.tsx, BrushToolPanel.tsx, and useBackgroundRemover.ts. The implementation includes a Paint button, brush mode toggle, hasMaskStrokes tracking, processManualErase function, and an Erase button in BrushToolPanel styled with teal/cyan glassmorphism classes. Most REQ-35 requirements appear to be addressed, though some details are truncated.",
+  "generatedAt": "2026-03-02T17:04:30.892Z",
+  "summary": "The diff shows PDFScanner.tsx has been substantially rewritten to implement the requested scan-to-PDF workflow. The file includes types for ScannedPage, PageAdjustments, CropRegion, helpers for applyAdjustmentsToCanvas and autoDetectCrop, and imports for relevant UI components. However, the diff is truncated at ~4000 chars, so only partial implementation is visible. Based on what is visible, most requirements appear to be addressed at the code structure level, but several acceptance criteria cannot be fully confirmed due to truncation.",
   "missing_requirements": [
     {
-      "id": "REQ-35",
-      "requirement": "The result of clicking Erase must be immediately reflected in the canvas preview and the before/after preview.",
-      "reason": "The diff is truncated and does not show the full processManualErase implementation in useBackgroundRemover.ts, nor does it confirm that the BeforeAfterPreview component is updated or triggered after erasing. The resultDataUrl update and preview refresh after manual erase cannot be confirmed from the available diff.",
+      "requirement": "REQ-74: In Manual Crop mode, an interactive overlay with draggable corner handles is shown on the image.",
+      "reason": "The diff is truncated before the JSX/render section of PDFScanner.tsx. The autoDetectCrop helper is present, but draggable corner handles for manual crop mode cannot be verified from the available diff content.",
       "evidence": [
-        "frontend/src/modules/BackgroundRemover/useBackgroundRemover.ts",
-        "frontend/src/modules/BackgroundRemover.tsx"
+        "frontend/src/modules/PDFConverter/PDFScanner.tsx"
       ]
-    }
-  ],
-  "hallucinated_features": [
+    },
     {
-      "description": "The Undo button in BrushToolPanel is labeled 'Clear Brush Strokes' and clears the entire mask rather than undoing the last individual stroke.",
-      "reason": "The build request specifies not breaking existing brush tool undo functionality. The implementation replaces per-stroke undo with a full clear, which is a behavioral change beyond what was requested and potentially violates the constraint about preserving undo functionality.",
+      "requirement": "REQ-74: A toggle or radio control allows switching between Auto Crop and Manual Crop modes.",
+      "reason": "The CropMode type ('auto' | 'manual') is defined, but the actual toggle/radio UI control in the render section is not visible due to truncation.",
       "evidence": [
-        "frontend/src/modules/BackgroundRemover/BrushToolPanel.tsx",
-        "frontend/src/modules/BackgroundRemover/useBackgroundRemover.ts"
+        "frontend/src/modules/PDFConverter/PDFScanner.tsx"
+      ]
+    },
+    {
+      "requirement": "REQ-73: On mobile, the button label reads 'Choose from Files (Google Files / Scanner)'.",
+      "reason": "The render/JSX section is not visible due to truncation. Cannot confirm mobile-specific label logic is implemented.",
+      "evidence": [
+        "frontend/src/modules/PDFConverter/PDFScanner.tsx"
+      ]
+    },
+    {
+      "requirement": "REQ-77: pdf-lib is loaded from CDN following the same pattern used in usePDFOperations.ts.",
+      "reason": "The diff is truncated and the CDN-load pattern for pdf-lib cannot be confirmed. The import section shows no static pdf-lib import, but the CDN dynamic load logic is not visible.",
+      "evidence": [
+        "frontend/src/modules/PDFConverter/PDFScanner.tsx"
+      ]
+    },
+    {
+      "requirement": "REQ-73: PDF.js is loaded from CDN for rendering PDF pages, following the same pattern as usePDFOperations.ts.",
+      "reason": "The diff is truncated and the CDN-load pattern for PDF.js cannot be confirmed in the visible portion of the file.",
+      "evidence": [
+        "frontend/src/modules/PDFConverter/PDFScanner.tsx"
       ]
     }
   ],
-  "confidence": 0.62,
+  "hallucinated_features": [],
+  "confidence": 0.42,
   "changed_files": [
     "frontend-file-summaries.txt",
-    "frontend/src/modules/BackgroundRemover.tsx",
-    "frontend/src/modules/BackgroundRemover/BrushToolPanel.tsx",
-    "frontend/src/modules/BackgroundRemover/useBackgroundRemover.ts",
+    "frontend/src/modules/PDFConverter/PDFScanner.tsx",
     "project_state.json"
   ]
 }

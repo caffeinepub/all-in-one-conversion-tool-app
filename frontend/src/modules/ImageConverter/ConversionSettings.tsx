@@ -4,10 +4,13 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ConversionSettingsProps {
   settings: Settings;
   onChange: (settings: Partial<Settings>) => void;
+  onNext?: () => void;
+  onBack?: () => void;
 }
 
 const FORMAT_OPTIONS: { value: OutputFormat; label: string }[] = [
@@ -27,7 +30,7 @@ const FILTER_OPTIONS: { value: FilterType; label: string }[] = [
   { value: 'warm', label: 'Warm' },
 ];
 
-export function ConversionSettings({ settings, onChange }: ConversionSettingsProps) {
+export function ConversionSettings({ settings, onChange, onNext, onBack }: ConversionSettingsProps) {
   return (
     <div className="space-y-5">
       {/* Format */}
@@ -156,6 +159,24 @@ export function ConversionSettings({ settings, onChange }: ConversionSettingsPro
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      {/* Navigation */}
+      <div className="flex items-center justify-between pt-2 border-t border-border/40">
+        <button
+          onClick={onBack}
+          className="tool-btn px-5 py-2 text-sm font-medium flex items-center gap-1.5"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Back
+        </button>
+        <button
+          onClick={onNext}
+          className="tool-btn px-5 py-2 text-sm font-medium flex items-center gap-1.5"
+        >
+          Next
+          <ChevronRight className="h-4 w-4" />
+        </button>
       </div>
     </div>
   );
