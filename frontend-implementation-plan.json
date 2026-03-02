@@ -1,0 +1,65 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Add Video Downloader tab (YouTube & Facebook)",
+  "requirements": [
+    {
+      "id": "REQ-27",
+      "summary": "Add 'Video Downloader' tab to TabNavigation and wire it into App.tsx to conditionally render the VideoDownloader module",
+      "acceptanceCriteria": [
+        "A 'Video Downloader' tab appears in the tab bar alongside the existing five tabs.",
+        "Clicking the tab activates it with the same active-state styling as other tabs.",
+        "The VideoDownloader module component is rendered when the tab is active and unmounted/hidden otherwise.",
+        "Existing tabs continue to work correctly without regression."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/TabNavigation.tsx",
+          "operation": "modify",
+          "description": "Add a sixth tab object for 'Video Downloader' to the tabs array with id 'video-downloader', title 'Video Downloader', and a description like 'Download videos from YouTube and Facebook'. Ensure the tab uses the same Download icon (or similar) and styling as existing tabs. The tab will appear at the end of the horizontal scroll list."
+        },
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Import the VideoDownloader module component. Add a conditional render block in the main content area that displays <VideoDownloader /> when activeTab === 'video-downloader', following the same pattern used for the existing five modules (ImageEditor, PDFConverter, ImageConverter, PassportPhotoConverter, BackgroundRemover)."
+        }
+      ]
+    },
+    {
+      "id": "REQ-28",
+      "summary": "Create VideoDownloader module with URL input, YouTube Data API v3 integration, metadata display, quality selection, and client-side download triggering",
+      "acceptanceCriteria": [
+        "A URL text input is displayed with a placeholder indicating YouTube or Facebook URLs are accepted.",
+        "Clicking 'Download' with a valid YouTube URL calls the YouTube Data API v3 with key AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ and displays the video title and thumbnail.",
+        "A loading spinner is shown while the API request is in flight.",
+        "An error message is displayed when the URL is empty, malformed, or the API returns an error.",
+        "Available quality options are displayed when the API response includes them.",
+        "Clicking a quality/download option triggers a browser download or opens the stream URL.",
+        "The module is styled with the existing dark-first glassmorphism design system (glass-card, tool-btn, teal/cyan accents) consistent with other modules."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/modules/VideoDownloader.tsx",
+          "operation": "create",
+          "description": "Create the main VideoDownloader module component. Render a glass-card container with: (1) A URL text input field with placeholder 'Paste YouTube or Facebook video URL here'. (2) A 'Download' tool-btn button styled with teal/cyan accent. (3) When the Download button is clicked, validate the URL is non-empty and looks like a YouTube or Facebook URL. (4) For YouTube URLs, extract the video ID and call the YouTube Data API v3 videos endpoint (https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id={videoId}&key=AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ) to fetch video metadata (title, thumbnail URL). (5) For Facebook URLs, display the pasted URL and inform the user that direct downloads may require opening the stream in a new tab due to platform restrictions. Attempt to resolve embed info via client-side fetch to fb.watch or facebook.com video embed endpoints if possible. (6) Display a loading spinner (using existing Loader2 icon or similar) while the API request is in flight. (7) Once metadata is fetched, display the video thumbnail image and title in a result panel. (8) Show available quality/format options in a list or dropdown. For YouTube, parse contentDetails for available formats if provided by the API; otherwise display a generic 'Download Video' option that opens the YouTube watch URL. (9) When a quality option is clicked, attempt to trigger a browser download via an anchor element with download attribute and href set to the direct stream URL. If CORS blocks the download, open the URL in a new tab with window.open. (10) Display clear error messages in a danger-styled alert if the URL is invalid, the API returns an error, or the video is unavailable. Use the existing design system's alert or toast components for errors. (11) Ensure the module is fully responsive and stacks vertically on mobile screens (<640px). Use existing utility classes from frontend/src/index.css (glass-card, tool-btn, text-teal-400, bg-slate-900, etc.) to maintain design consistency."
+        }
+      ]
+    },
+    {
+      "id": "REQ-29",
+      "summary": "Apply existing dark-first glassmorphism design system to VideoDownloader module and ensure mobile responsiveness",
+      "acceptanceCriteria": [
+        "The VideoDownloader module visually matches the design language of other modules (glass-card panels, teal/cyan buttons, charcoal background).",
+        "The layout is usable and readable on mobile screen widths (≤ 640px).",
+        "Button hover states and micro-interaction animations are consistent with other modules."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/modules/VideoDownloader.tsx",
+          "operation": "modify",
+          "description": "Ensure all panels use glass-card utility classes for glassmorphism surfaces. Style the Download button with tool-btn and teal/cyan accent colors (e.g., bg-teal-500 hover:bg-teal-600). Use charcoal/slate background colors (bg-slate-900, bg-slate-800) for containers. Apply existing text color utilities (text-slate-200, text-slate-400) for labels and descriptions. Add responsive Tailwind classes (e.g., flex flex-col, gap-4, w-full) to stack the input panel and result panel vertically on small screens. Ensure hover states on buttons include smooth transitions (transition-colors duration-200) consistent with other modules. Reference frontend/src/index.css for reusable utility classes and color tokens."
+        }
+      ]
+    }
+  ]
+}

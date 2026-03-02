@@ -1,0 +1,63 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-add-a-video-downloader-tab-to-the-existing-tabnavigation-component-frontend-src-components-tabnavigation-tsx-alongside-the-five-existing-tabs-image-editor-pdf-converter-image-converter-passport-photo-bg-remover-update-app-tsx-to-conditionally-render-the-new-videodownloader-module-component-when-this-tab-is-active-maintain-existing-tab-styling-scroll-behavior-and-smooth-switching-animations",
+      "featureTitle": "Add a 'Video Downloader' tab to the existing TabNavigation component (frontend/src/components/TabNavigation.tsx) alongside the five existing tabs (Image Editor, PDF Converter, Image Converter, Passport Photo, BG Remover). Update App.tsx to conditionally render the new VideoDownloader module component when this tab is active. Maintain existing tab styling, scroll behavior, and smooth switching animations.",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/components/TabNavigation.tsx"
+      ],
+      "components": [
+        "camera@1.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-27"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-create-a-new-frontend-module-at-frontend-src-modules-videodownloader-tsx-the-module-must-provide-1-a-url-input-field-where-users-paste-a-youtube-or-facebook-video-link-2-a-download-button-that-when-clicked-calls-the-youtube-data-api-v3-using-the-api-key-aizasydlj5yvdipe6oyjniw-ojg5cz5-krj33yq-to-fetch-video-metadata-title-thumbnail-available-formats-qualities-for-youtube-links-for-facebook-links-display-the-pasted-url-and-attempt-to-resolve-downloadable-stream-info-via-a-client-side-fetch-to-publicly-accessible-embed-endpoints-3-display-the-video-thumbnail-and-title-once-metadata-is-fetched-4-show-available-quality-options-e-g-360p-720p-1080p-when-available-and-let-the-user-select-one-5-trigger-a-browser-download-of-the-video-file-via-an-anchor-tag-with-the-download-attribute-or-open-the-direct-stream-url-in-a-new-tab-if-direct-download-is-blocked-by-cors-6-show-a-loading-spinner-while-fetching-metadata-and-a-clear-error-message-if-the-link-is-invalid-unsupported-or-the-api-returns-an-error",
+      "featureTitle": "Create a new frontend module at frontend/src/modules/VideoDownloader.tsx. The module must provide: (1) A URL input field where users paste a YouTube or Facebook video link. (2) A 'Download' button that, when clicked, calls the YouTube Data API v3 using the API key AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ to fetch video metadata (title, thumbnail, available formats/qualities) for YouTube links. For Facebook links, display the pasted URL and attempt to resolve downloadable stream info via a client-side fetch to publicly accessible embed endpoints. (3) Display the video thumbnail and title once metadata is fetched. (4) Show available quality options (e.g., 360p, 720p, 1080p) when available and let the user select one. (5) Trigger a browser download of the video file via an anchor tag with the download attribute, or open the direct stream URL in a new tab if direct download is blocked by CORS. (6) Show a loading spinner while fetching metadata and a clear error message if the link is invalid, unsupported, or the API returns an error.",
+      "files": [
+        "frontend/src/modules/VideoDownloader.tsx"
+      ],
+      "components": [
+        "camera@1.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-28"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-apply-the-existing-dark-first-glassmorphism-design-system-to-the-videodownloader-module-use-glass-card-surfaces-for-the-input-result-panels-tool-btn-classes-for-action-buttons-teal-cyan-accent-colors-for-the-download-button-and-active-states-and-deep-charcoal-slate-backgrounds-consistent-with-frontend-src-index-css-utility-classes-ensure-the-module-is-fully-mobile-responsive-with-the-url-input-and-result-area-stacking-vertically-on-small-screens",
+      "featureTitle": "Apply the existing dark-first glassmorphism design system to the VideoDownloader module. Use glass-card surfaces for the input/result panels, tool-btn classes for action buttons, teal/cyan accent colors for the Download button and active states, and deep charcoal/slate backgrounds consistent with frontend/src/index.css utility classes. Ensure the module is fully mobile-responsive with the URL input and result area stacking vertically on small screens.",
+      "files": [
+        "frontend/src/modules/VideoDownloader.tsx"
+      ],
+      "components": [
+        "camera@1.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-29"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

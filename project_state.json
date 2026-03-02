@@ -1,0 +1,346 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 17,
+  "summary": "All-in-One Conversion Tool App website with five main modules: Image Editor, PDF Converter, Image Converter, Passport Size Photo Converter, and Image Background Remover. Features dark/light mode, mobile-responsive modern UI with smooth animations.",
+  "architectural_notes": [
+    "Client-side processing preferred for image/PDF operations to avoid server costs and privacy concerns",
+    "Use canvas API or libraries like Fabric.js for image editing; PDF-lib or pdf.js for PDF operations",
+    "Support drag-and-drop file input alongside gallery/camera selection",
+    "Passport Size Photo Converter uses Canvas API for image resizing, HD enhancement (sharpness/brightness/contrast filters), and A4 sheet grid layout generation for print/download",
+    "Image Background Remover uses Canvas API with brush-based mask painting for manual background selection; transparent PNG output via canvas compositing; no server-side AI required (optional client-side model)",
+    "APK conversion requires wrapping the web app in a WebView shell (e.g., using Capacitor or Cordova) or a PWA-to-APK tool (e.g., TWA/Bubblewrap)",
+    "Video Downloader tab uses YouTube Data API v3 (key: AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ) for YouTube video metadata/download; Facebook video download may require third-party proxy or scraping approach due to API restrictions"
+  ],
+  "known_issues": [
+    "HEIC format support is limited in browsers and may require a conversion library (e.g., heic2any)",
+    "Camera access requires HTTPS and user permission grants",
+    "True AI-based background removal requires a client-side ML model (e.g., ONNX/TensorFlow.js); manual brush selection is the primary fallback",
+    "APK packaging is not natively supported in a browser-only stack; requires a build tool like Capacitor, Cordova, or Bubblewrap/TWA",
+    "Direct YouTube/Facebook video downloading via browser is restricted by CORS and platform ToS; a server-side proxy or third-party service may be required for actual video download functionality"
+  ],
+  "isFixRequest": false,
+  "existing_features": [
+    {
+      "id": "feature-create-a-tabbed-navigation-layout-with-three-main-tabs-image-editor-pdf-converter-and-image-converter-include-a-dark-mode-light-mode-toggle-in-the-header-the-layout-must-be-fully-mobile-responsive-with-smooth-tab-switching-animations",
+      "title": "Create a tabbed navigation layout with three main tabs: 'Image Editor', 'PDF Converter', and 'Image Converter'. Include a dark mode / light mode toggle in the header. The layout must be fully mobile-responsive with smooth tab-switching animations.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-the-image-editor-module-users-can-upload-an-image-from-their-local-device-file-picker-for-gallery-or-capture-via-camera-using-browser-mediadevices-api-editing-options-must-include-crop-free-ratio-and-preset-custom-ratios-resize-custom-width-height-rotate-90-180-270-and-flip-horizontal-vertical-and-adjustments-for-brightness-contrast-and-saturation-using-sliders-implement-text-overlay-add-text-with-multiple-font-family-choices-font-size-slider-font-color-picker-text-shadow-toggle-text-outline-toggle-and-ability-to-drag-and-rotate-the-text-freely-on-the-canvas-add-image-filter-presets-vintage-black-white-hdr-and-cinematic-allow-export-save-in-jpg-png-and-webp-formats-with-a-high-quality-export-option",
+      "title": "Implement the Image Editor module. Users can upload an image from their local device (file picker for Gallery) or capture via Camera (using browser MediaDevices API). Editing options must include: crop (free ratio and preset custom ratios), resize (custom width/height), rotate (90°/180°/270°) and flip (horizontal/vertical), and adjustments for brightness, contrast, and saturation using sliders. Implement text overlay: add text with multiple font family choices, font size slider, font color picker, text shadow toggle, text outline toggle, and ability to drag and rotate the text freely on the canvas. Add image filter presets: Vintage, Black & White, HDR, and Cinematic. Allow export/save in JPG, PNG, and WEBP formats with a high-quality export option.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-the-pdf-converter-module-using-a-client-side-pdf-library-pdf-lib-and-pdfjs-dist-allow-users-to-add-multiple-pdf-files-features-must-include-merge-multiple-pdfs-into-one-split-a-pdf-at-a-chosen-page-remove-selected-pages-from-a-pdf-rearrange-pages-via-drag-and-drop-thumbnails-also-support-creating-a-new-pdf-from-scratch-by-adding-images-from-file-picker-or-camera-capture-auto-enhancing-images-via-a-clear-picture-button-apply-brightness-boost-and-sharpness-contrast-correction-using-canvas-filters-compressing-the-pdf-and-exporting-the-final-pdf-at-high-quality",
+      "title": "Implement the PDF Converter module using a client-side PDF library (pdf-lib and pdfjs-dist). Allow users to add multiple PDF files. Features must include: merge multiple PDFs into one, split a PDF at a chosen page, remove selected pages from a PDF, rearrange pages via drag-and-drop thumbnails. Also support creating a new PDF from scratch by adding images (from file picker or camera capture), auto-enhancing images via a 'Clear Picture' button (apply brightness boost and sharpness/contrast correction using Canvas filters), compressing the PDF, and exporting the final PDF at high quality.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-the-image-converter-module-users-can-upload-one-or-more-images-batch-support-provide-format-conversion-between-jpg-png-and-webp-provide-resize-options-custom-width-and-height-inputs-and-resize-by-percentage-input-provide-resolution-dpi-adjustment-and-an-image-quality-percentage-slider-for-lossy-formats-apply-filter-presets-same-set-as-image-editor-show-a-before-after-preview-side-by-side-or-slider-comparison-export-all-converted-images-individually-or-as-a-zip-for-batch-jobs",
+      "title": "Implement the Image Converter module. Users can upload one or more images (batch support). Provide format conversion between JPG, PNG, and WEBP. Provide resize options: custom width and height inputs, and resize-by-percentage input. Provide resolution/DPI adjustment and an image quality percentage slider (for lossy formats). Apply filter presets (same set as Image Editor). Show a before/after preview (side-by-side or slider comparison). Export all converted images, individually or as a ZIP for batch jobs.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-apply-a-cohesive-modern-visual-theme-across-all-three-modules-use-a-dark-first-design-with-a-clean-minimalist-aesthetic-deep-charcoal-slate-backgrounds-vibrant-teal-cyan-accent-colors-crisp-white-typography-subtle-glassmorphism-card-surfaces-and-smooth-micro-interaction-animations-button-hover-states-panel-slide-ins-progress-indicators-enforce-this-design-system-consistently-across-all-tabs-modals-and-controls",
+      "title": "Apply a cohesive, modern visual theme across all three modules. Use a dark-first design with a clean, minimalist aesthetic: deep charcoal/slate backgrounds, vibrant teal/cyan accent colors, crisp white typography, subtle glassmorphism card surfaces, and smooth micro-interaction animations (button hover states, panel slide-ins, progress indicators). Enforce this design system consistently across all tabs, modals, and controls.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-passport-photo-tab-and-an-bg-remover-tab-to-the-existing-tabnavigation-component-alongside-the-three-existing-tabs-image-editor-pdf-converter-image-converter-update-app-tsx-to-conditionally-render-the-new-passportphotoconverter-and-backgroundremover-module-components-based-on-the-active-tab-state-maintain-existing-tab-styling-and-smooth-switching-animations",
+      "title": "Add a 'Passport Photo' tab and an 'BG Remover' tab to the existing TabNavigation component, alongside the three existing tabs (Image Editor, PDF Converter, Image Converter). Update App.tsx to conditionally render the new PassportPhotoConverter and BackgroundRemover module components based on the active tab state. Maintain existing tab styling and smooth switching animations.",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-the-passport-size-photo-converter-module-as-a-new-frontend-component-at-frontend-src-modules-passportphotoconverter-tsx-users-can-upload-a-jpg-png-or-jpeg-image-via-file-picker-and-see-an-instant-preview-automatically-crop-and-resize-the-image-to-standard-passport-size-35mm-45mm-at-300-dpi-413-531-px-using-canvas-apply-automatic-enhancements-on-the-canvas-brightness-boost-contrast-correction-and-sharpness-filter-provide-a-customizable-size-option-dropdown-with-common-presets-35-45mm-2-2in-1-5-1-5in-plus-a-custom-width-height-input-in-mm",
+      "title": "Implement the Passport Size Photo Converter module as a new frontend component at frontend/src/modules/PassportPhotoConverter.tsx. Users can upload a JPG, PNG, or JPEG image via file picker and see an instant preview. Automatically crop and resize the image to standard passport size (35mm × 45mm at 300 DPI = 413×531 px) using Canvas. Apply automatic enhancements on the Canvas: brightness boost, contrast correction, and sharpness filter. Provide a customizable size option (dropdown with common presets: 35×45mm, 2×2in, 1.5×1.5in, plus a custom width/height input in mm).",
+      "reqIds": [
+        "REQ-8"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-within-the-passport-photo-converter-module-add-a-number-of-copies-selector-numeric-input-or-stepper-range-1-40-render-the-selected-number-of-passport-photo-copies-in-a-responsive-grid-layout-on-the-right-side-of-the-workspace-arrange-copies-to-fill-an-a4-sheet-layout-210-297mm-with-proper-margins-and-spacing-between-photos-previewing-how-they-will-look-when-printed",
+      "title": "Within the Passport Photo Converter module, add a 'Number of Copies' selector (numeric input or stepper, range 1–40). Render the selected number of passport photo copies in a responsive grid layout on the right side of the workspace. Arrange copies to fill an A4 sheet layout (210×297mm) with proper margins and spacing between photos, previewing how they will look when printed.",
+      "reqIds": [
+        "REQ-9"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-within-the-passport-photo-converter-module-add-an-add-text-button-that-opens-a-text-customization-panel-allow-users-to-type-custom-text-that-appears-at-the-bottom-of-each-passport-photo-copy-provide-controls-for-font-family-dropdown-with-at-least-5-common-families-font-size-slider-or-numeric-input-font-color-color-picker-bold-toggle-italic-toggle-and-text-alignment-left-center-right-render-the-text-overlay-on-the-canvas-below-the-photo",
+      "title": "Within the Passport Photo Converter module, add an 'Add Text' button that opens a text customization panel. Allow users to type custom text that appears at the bottom of each passport photo copy. Provide controls for: font family (dropdown with at least 5 common families), font size (slider or numeric input), font color (color picker), bold toggle, italic toggle, and text alignment (left, center, right). Render the text overlay on the Canvas below the photo.",
+      "reqIds": [
+        "REQ-10"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-within-the-passport-photo-converter-module-add-download-and-print-buttons-the-download-button-exports-the-a4-sheet-with-all-copies-as-a-high-quality-png-via-canvas-todataurl-or-pdf-using-pdf-lib-loaded-from-cdn-same-pattern-as-pdfconverter-module-provide-a-format-selector-png-or-pdf-the-print-button-triggers-window-print-with-the-a4-layout-show-a-full-preview-of-the-final-sheet-before-downloading",
+      "title": "Within the Passport Photo Converter module, add Download and Print buttons. The Download button exports the A4 sheet with all copies as a high-quality PNG (via Canvas toDataURL) or PDF (using pdf-lib loaded from CDN, same pattern as PDFConverter module). Provide a format selector (PNG or PDF). The Print button triggers window.print() with the A4 layout. Show a full preview of the final sheet before downloading.",
+      "reqIds": [
+        "REQ-11"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-the-image-background-remover-module-as-a-new-frontend-component-at-frontend-src-modules-backgroundremover-tsx-provide-a-browse-photo-button-to-upload-jpg-png-or-jpeg-images-and-show-an-instant-canvas-based-preview-implement-a-crop-feature-with-an-adjustable-crop-box-overlay-on-the-canvas-resize-handles-zoom-slider-and-a-rotate-control-apply-the-crop-before-any-background-removal-processing",
+      "title": "Implement the Image Background Remover module as a new frontend component at frontend/src/modules/BackgroundRemover.tsx. Provide a 'Browse Photo' button to upload JPG, PNG, or JPEG images and show an instant Canvas-based preview. Implement a Crop feature with an adjustable crop box overlay on the Canvas (resize handles, zoom slider, and a rotate control). Apply the crop before any background removal processing.",
+      "reqIds": [
+        "REQ-12"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-within-the-background-remover-module-implement-a-brush-selection-tool-when-the-brush-tool-button-is-activated-the-user-can-paint-over-the-background-area-on-the-canvas-to-mark-it-for-removal-provide-a-brush-size-selector-small-10px-medium-25px-large-50px-rendered-as-a-circular-cursor-implement-an-undo-button-that-removes-the-last-brush-stroke-and-an-erase-mode-toggle-that-allows-the-user-to-unpaint-previously-marked-areas-marked-background-areas-should-be-highlighted-with-a-semi-transparent-red-overlay",
+      "title": "Within the Background Remover module, implement a Brush Selection Tool. When the 'Brush Tool' button is activated, the user can paint over the background area on the Canvas to mark it for removal. Provide a brush size selector (small ~10px, medium ~25px, large ~50px) rendered as a circular cursor. Implement an Undo button that removes the last brush stroke, and an Erase mode toggle that allows the user to unpaint previously marked areas. Marked background areas should be highlighted with a semi-transparent red overlay.",
+      "reqIds": [
+        "REQ-13"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-within-the-background-remover-module-implement-the-remove-background-button-when-clicked-process-the-canvas-to-remove-all-pixels-marked-by-the-brush-tool-offer-two-output-options-transparent-background-exported-as-png-or-a-custom-solid-color-background-color-picker-to-choose-the-replacement-color-optionally-provide-an-auto-detect-button-that-uses-a-flood-fill-or-color-similarity-algorithm-to-automatically-select-background-pixels-without-manual-brush-painting",
+      "title": "Within the Background Remover module, implement the 'Remove Background' button. When clicked, process the Canvas to remove all pixels marked by the brush tool. Offer two output options: transparent background (exported as PNG) or a custom solid color background (color picker to choose the replacement color). Optionally provide an 'Auto Detect' button that uses a flood-fill or color-similarity algorithm to automatically select background pixels without manual brush painting.",
+      "reqIds": [
+        "REQ-14"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-within-the-background-remover-module-implement-a-before-after-preview-showing-the-original-uploaded-image-and-the-background-removed-result-side-by-side-or-via-a-draggable-slider-comparison-reuse-the-beforeafterpreview-pattern-from-the-imageconverter-module-add-a-download-button-that-saves-the-result-as-png-transparent-or-jpg-with-selected-background-color-at-full-resolution-add-extra-utility-controls-zoom-in-out-buttons-for-the-canvas-view-an-add-background-image-option-to-upload-a-new-background-image-that-replaces-the-removed-area-and-a-reset-button-that-clears-all-edits-and-returns-to-the-original-uploaded-image",
+      "title": "Within the Background Remover module, implement a before/after preview showing the original uploaded image and the background-removed result side by side or via a draggable slider comparison (reuse the BeforeAfterPreview pattern from the ImageConverter module). Add a Download button that saves the result as PNG (transparent) or JPG (with selected background color) at full resolution. Add extra utility controls: zoom in/out buttons for the canvas view, an 'Add Background Image' option to upload a new background image that replaces the removed area, and a Reset button that clears all edits and returns to the original uploaded image.",
+      "reqIds": [
+        "REQ-15"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-apply-the-existing-dark-first-glassmorphism-design-system-deep-charcoal-slate-backgrounds-vibrant-teal-cyan-accents-crisp-white-typography-glass-card-surfaces-tool-btn-classes-and-micro-interaction-animations-consistently-to-both-the-passport-photo-converter-and-background-remover-modules-reuse-existing-css-utility-classes-glass-card-tool-btn-upload-zone-defined-in-frontend-src-index-css-ensure-both-modules-are-fully-mobile-responsive",
+      "title": "Apply the existing dark-first glassmorphism design system (deep charcoal/slate backgrounds, vibrant teal/cyan accents, crisp white typography, glass-card surfaces, tool-btn classes, and micro-interaction animations) consistently to both the Passport Photo Converter and Background Remover modules. Reuse existing CSS utility classes (glass-card, tool-btn, upload-zone) defined in frontend/src/index.css. Ensure both modules are fully mobile-responsive.",
+      "reqIds": [
+        "REQ-16"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-image-editor-module-frontend-src-modules-imageeditor-tsx-add-a-prominent-download-button-that-is-visible-after-an-image-has-been-loaded-and-edited-clicking-it-should-open-the-existing-exportdialog-frontend-src-modules-imageeditor-exportdialog-tsx-allowing-the-user-to-select-format-jpeg-png-webp-and-quality-then-trigger-a-file-download-of-the-current-canvas-state",
+      "title": "In the Image Editor module (frontend/src/modules/ImageEditor.tsx), add a prominent 'Download' button that is visible after an image has been loaded and edited. Clicking it should open the existing ExportDialog (frontend/src/modules/ImageEditor/ExportDialog.tsx) allowing the user to select format (JPEG, PNG, WebP) and quality, then trigger a file download of the current canvas state.",
+      "reqIds": [
+        "REQ-17"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-pdf-converter-module-frontend-src-modules-pdfconverter-tsx-add-a-next-button-to-each-tab-in-the-tabbed-interface-to-guide-users-through-a-linear-workflow-files-tab-merge-split-tab-pages-tab-create-tab-on-the-files-tab-the-next-button-advances-to-the-merge-split-tab-on-the-merge-split-tab-the-next-button-advances-to-the-pages-tab-on-the-pages-tab-the-next-button-advances-to-the-create-tab-on-the-create-tab-after-the-process-is-complete-show-a-download-button-to-download-the-resulting-pdf-each-next-button-should-be-placed-prominently-at-the-bottom-of-the-current-tab-panel",
+      "title": "In the PDF Converter module (frontend/src/modules/PDFConverter.tsx), add a 'Next' button to each tab in the tabbed interface to guide users through a linear workflow: Files tab → Merge/Split tab → Pages tab → Create tab. On the Files tab, the Next button advances to the Merge/Split tab. On the Merge/Split tab, the Next button advances to the Pages tab. On the Pages tab, the Next button advances to the Create tab. On the Create tab, after the process is complete, show a 'Download' button to download the resulting PDF. Each Next button should be placed prominently at the bottom of the current tab panel.",
+      "reqIds": [
+        "REQ-18"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-image-converter-module-frontend-src-modules-imageconverter-tsx-add-a-next-button-to-each-tab-in-the-tabbed-interface-upload-settings-preview-export-to-guide-users-through-a-linear-step-by-step-workflow-on-the-upload-tab-next-advances-to-settings-on-the-settings-tab-next-advances-to-preview-on-the-preview-tab-next-advances-to-export-on-the-export-tab-provide-the-existing-export-download-controls-each-next-button-should-appear-at-the-bottom-of-its-tab-panel-and-be-disabled-when-the-prerequisite-step-is-incomplete-e-g-no-images-uploaded-on-the-upload-tab",
+      "title": "In the Image Converter module (frontend/src/modules/ImageConverter.tsx), add a 'Next' button to each tab in the tabbed interface (Upload, Settings, Preview, Export) to guide users through a linear step-by-step workflow. On the Upload tab, Next advances to Settings. On the Settings tab, Next advances to Preview. On the Preview tab, Next advances to Export. On the Export tab, provide the existing export/download controls. Each Next button should appear at the bottom of its tab panel and be disabled when the prerequisite step is incomplete (e.g., no images uploaded on the Upload tab).",
+      "reqIds": [
+        "REQ-19"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-image-editor-module-frontend-src-modules-imageeditor-tsx-and-related-files-add-a-download-as-zip-button-that-becomes-visible-after-an-image-has-been-loaded-when-clicked-it-should-export-the-current-edited-canvas-as-an-image-file-using-the-currently-selected-or-default-format-jpeg-png-webp-and-package-it-into-a-zip-archive-using-jszip-already-declared-in-frontend-src-types-declarations-d-ts-then-trigger-a-browser-download-of-the-zip-file",
+      "title": "In the Image Editor module (frontend/src/modules/ImageEditor.tsx and related files), add a 'Download as ZIP' button that becomes visible after an image has been loaded. When clicked, it should export the current edited canvas as an image file (using the currently selected or default format: JPEG/PNG/WebP) and package it into a ZIP archive using JSZip (already declared in frontend/src/types/declarations.d.ts), then trigger a browser download of the ZIP file.",
+      "reqIds": [
+        "REQ-20"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-passport-photo-converter-module-frontend-src-modules-passportphotoconverter-tsx-and-frontend-src-modules-passportphotoconverter-exportpanel-tsx-add-a-download-as-zip-option-alongside-the-existing-png-pdf-download-when-selected-the-a4-sheet-export-png-and-or-individual-passport-photo-copies-should-be-packaged-into-a-zip-archive-using-jszip-and-downloaded-as-a-zip-file",
+      "title": "In the Passport Photo Converter module (frontend/src/modules/PassportPhotoConverter.tsx and frontend/src/modules/PassportPhotoConverter/ExportPanel.tsx), add a 'Download as ZIP' option alongside the existing PNG/PDF download. When selected, the A4 sheet export (PNG) and/or individual passport photo copies should be packaged into a ZIP archive using JSZip and downloaded as a ZIP file.",
+      "reqIds": [
+        "REQ-21"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-background-remover-module-frontend-src-modules-backgroundremover-tsx-and-frontend-src-modules-backgroundremover-exportpanel-tsx-add-a-download-as-zip-button-in-the-export-controls-when-clicked-the-background-removed-result-image-png-with-transparent-background-or-jpg-with-chosen-background-color-should-be-packaged-into-a-zip-archive-using-jszip-and-downloaded",
+      "title": "In the Background Remover module (frontend/src/modules/BackgroundRemover.tsx and frontend/src/modules/BackgroundRemover/ExportPanel.tsx), add a 'Download as ZIP' button in the export controls. When clicked, the background-removed result image (PNG with transparent background or JPG with chosen background color) should be packaged into a ZIP archive using JSZip and downloaded.",
+      "reqIds": [
+        "REQ-22"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-pdf-converter-module-frontend-src-modules-pdfconverter-tsx-add-a-download-as-zip-button-on-the-create-tab-alongside-the-existing-pdf-download-button-when-clicked-the-final-generated-pdf-should-be-packaged-into-a-zip-archive-using-jszip-and-downloaded-if-multiple-pdfs-have-been-processed-e-g-after-a-split-operation-all-resulting-pdf-files-should-be-included-in-the-zip",
+      "title": "In the PDF Converter module (frontend/src/modules/PDFConverter.tsx), add a 'Download as ZIP' button on the Create tab (alongside the existing PDF download button). When clicked, the final generated PDF should be packaged into a ZIP archive using JSZip and downloaded. If multiple PDFs have been processed (e.g., after a split operation), all resulting PDF files should be included in the ZIP.",
+      "reqIds": [
+        "REQ-23"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-image-editor-module-frontend-src-modules-imageeditor-tsx-add-a-prominent-crop-button-to-the-main-editing-toolbar-that-is-visible-whenever-an-image-is-loaded-clicking-the-button-should-activate-the-existing-croptool-panel-frontend-src-modules-imageeditor-croptool-tsx-showing-the-preset-aspect-ratio-options-free-1-1-4-3-16-9-3-2-and-allowing-the-user-to-apply-the-crop-to-the-canvas-the-button-should-follow-the-existing-tool-btn-styling-used-throughout-the-editor-and-highlight-indicate-active-state-when-the-crop-panel-is-open",
+      "title": "In the Image Editor module (frontend/src/modules/ImageEditor.tsx), add a prominent 'Crop' button to the main editing toolbar that is visible whenever an image is loaded. Clicking the button should activate the existing CropTool panel (frontend/src/modules/ImageEditor/CropTool.tsx), showing the preset aspect ratio options (Free, 1:1, 4:3, 16:9, 3:2) and allowing the user to apply the crop to the canvas. The button should follow the existing tool-btn styling used throughout the editor and highlight/indicate active state when the crop panel is open.",
+      "reqIds": [
+        "REQ-24"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-image-editor-crop-tab-frontend-src-modules-imageeditor-croptool-tsx-when-the-user-clicks-the-crop-button-display-an-interactive-crop-selection-overlay-directly-on-the-canvas-the-overlay-must-show-a-draggable-resizable-crop-rectangle-with-corner-and-edge-handles-so-the-user-can-visually-define-the-exact-area-to-crop-include-a-visual-dimming-effect-outside-the-crop-region-provide-a-apply-crop-confirmation-button-and-a-cancel-button-when-apply-is-clicked-crop-the-canvas-to-the-selected-region-and-commit-the-result-to-the-image-state-via-the-existing-useimagecanvas-hook",
+      "title": "In the Image Editor Crop tab (frontend/src/modules/ImageEditor/CropTool.tsx), when the user clicks the 'Crop' button, display an interactive crop selection overlay directly on the canvas. The overlay must show a draggable, resizable crop rectangle with corner and edge handles so the user can visually define the exact area to crop. Include a visual dimming effect outside the crop region. Provide a 'Apply Crop' confirmation button and a 'Cancel' button. When Apply is clicked, crop the canvas to the selected region and commit the result to the image state via the existing useImageCanvas hook.",
+      "reqIds": [
+        "REQ-25"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-image-editor-text-tab-frontend-src-modules-imageeditor-textoverlay-tsx-and-frontend-src-modules-imageeditor-tsx-allow-users-to-place-text-freely-anywhere-on-the-image-by-clicking-or-dragging-on-the-canvas-after-configuring-text-content-font-color-size-shadow-and-outline-in-the-text-panel-the-user-should-be-able-to-click-anywhere-on-the-canvas-preview-to-position-the-text-at-that-exact-location-render-the-text-layer-at-the-clicked-coordinates-the-text-layer-must-be-draggable-after-placement-so-the-user-can-reposition-it-freely-by-clicking-and-dragging-the-text-on-the-canvas-the-text-layer-must-also-support-rotation-by-dragging-a-rotation-handle-all-text-layers-must-be-stored-in-and-rendered-by-the-existing-useimagecanvas-hook-s-text-layer-state",
+      "title": "In the Image Editor Text tab (frontend/src/modules/ImageEditor/TextOverlay.tsx and frontend/src/modules/ImageEditor.tsx), allow users to place text freely anywhere on the image by clicking or dragging on the canvas. After configuring text content, font, color, size, shadow, and outline in the text panel, the user should be able to click anywhere on the canvas preview to position the text at that exact location. Render the text layer at the clicked coordinates. The text layer must be draggable after placement so the user can reposition it freely by clicking and dragging the text on the canvas. The text layer must also support rotation by dragging a rotation handle. All text layers must be stored in and rendered by the existing useImageCanvas hook's text layer state.",
+      "reqIds": [
+        "REQ-26"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-video-downloader-tab-to-the-existing-tabnavigation-component-frontend-src-components-tabnavigation-tsx-alongside-the-five-existing-tabs-image-editor-pdf-converter-image-converter-passport-photo-bg-remover-update-app-tsx-to-conditionally-render-the-new-videodownloader-module-component-when-this-tab-is-active-maintain-existing-tab-styling-scroll-behavior-and-smooth-switching-animations",
+      "title": "Add a 'Video Downloader' tab to the existing TabNavigation component (frontend/src/components/TabNavigation.tsx) alongside the five existing tabs (Image Editor, PDF Converter, Image Converter, Passport Photo, BG Remover). Update App.tsx to conditionally render the new VideoDownloader module component when this tab is active. Maintain existing tab styling, scroll behavior, and smooth switching animations.",
+      "reqIds": [
+        "REQ-27"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-a-new-frontend-module-at-frontend-src-modules-videodownloader-tsx-the-module-must-provide-1-a-url-input-field-where-users-paste-a-youtube-or-facebook-video-link-2-a-download-button-that-when-clicked-calls-the-youtube-data-api-v3-using-the-api-key-aizasydlj5yvdipe6oyjniw-ojg5cz5-krj33yq-to-fetch-video-metadata-title-thumbnail-available-formats-qualities-for-youtube-links-for-facebook-links-display-the-pasted-url-and-attempt-to-resolve-downloadable-stream-info-via-a-client-side-fetch-to-publicly-accessible-embed-endpoints-3-display-the-video-thumbnail-and-title-once-metadata-is-fetched-4-show-available-quality-options-e-g-360p-720p-1080p-when-available-and-let-the-user-select-one-5-trigger-a-browser-download-of-the-video-file-via-an-anchor-tag-with-the-download-attribute-or-open-the-direct-stream-url-in-a-new-tab-if-direct-download-is-blocked-by-cors-6-show-a-loading-spinner-while-fetching-metadata-and-a-clear-error-message-if-the-link-is-invalid-unsupported-or-the-api-returns-an-error",
+      "title": "Create a new frontend module at frontend/src/modules/VideoDownloader.tsx. The module must provide: (1) A URL input field where users paste a YouTube or Facebook video link. (2) A 'Download' button that, when clicked, calls the YouTube Data API v3 using the API key AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ to fetch video metadata (title, thumbnail, available formats/qualities) for YouTube links. For Facebook links, display the pasted URL and attempt to resolve downloadable stream info via a client-side fetch to publicly accessible embed endpoints. (3) Display the video thumbnail and title once metadata is fetched. (4) Show available quality options (e.g., 360p, 720p, 1080p) when available and let the user select one. (5) Trigger a browser download of the video file via an anchor tag with the download attribute, or open the direct stream URL in a new tab if direct download is blocked by CORS. (6) Show a loading spinner while fetching metadata and a clear error message if the link is invalid, unsupported, or the API returns an error.",
+      "reqIds": [
+        "REQ-28"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-apply-the-existing-dark-first-glassmorphism-design-system-to-the-videodownloader-module-use-glass-card-surfaces-for-the-input-result-panels-tool-btn-classes-for-action-buttons-teal-cyan-accent-colors-for-the-download-button-and-active-states-and-deep-charcoal-slate-backgrounds-consistent-with-frontend-src-index-css-utility-classes-ensure-the-module-is-fully-mobile-responsive-with-the-url-input-and-result-area-stacking-vertically-on-small-screens",
+      "title": "Apply the existing dark-first glassmorphism design system to the VideoDownloader module. Use glass-card surfaces for the input/result panels, tool-btn classes for action buttons, teal/cyan accent colors for the Download button and active states, and deep charcoal/slate backgrounds consistent with frontend/src/index.css utility classes. Ensure the module is fully mobile-responsive with the URL input and result area stacking vertically on small screens.",
+      "reqIds": [
+        "REQ-29"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Image Editor Module: crop, resize, rotate/flip, brightness/contrast/saturation, text editing with fonts/colors/shadow, filters, multi-format save",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "PDF Converter Module: merge/split PDFs, remove/rearrange pages, create PDF, convert images to PDF, clear picture enhancement, compress PDF",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Image Converter Module: format conversion (JPG/PNG/WEBP/PDF), resize by dimensions or percentage, quality adjustment, filters, batch conversion, before/after preview",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "UI: dark/light mode toggle, tabbed navigation (Image Editor, PDF Converter, Image Converter), mobile-responsive, smooth animations",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-10",
+      "summary": "The backend actor should expose a minimal health-check or metadata endpoint (e.g., getAppInfo returning app name and version) so the frontend can confirm the canister is reachable. No image or PDF data should be stored in the backend; all processing must remain client-side.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-11",
+      "summary": "Passport Size Photo Converter: upload JPG/PNG/JPEG, auto-convert to standard passport size (35x45mm or customizable), HD enhancement, brightness/contrast/sharpness auto-adjust, number of copies option, A4 sheet grid layout, add text with font/size/color/bold/italic/alignment, download as PNG/PDF, print button",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-12",
+      "summary": "Image Background Remover: upload image, crop with adjustable box (resize/rotate/zoom), brush selection tool with adjustable size and undo, remove selected background (transparent PNG or custom color), before/after preview, download PNG/JPG, optional AI auto-detect, background color picker, add new background image, zoom in/out, reset button",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-13",
+      "summary": "Image Editor: add Download button after editing to export/download the edited image",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-14",
+      "summary": "PDF Converter: add Next button flow — Files tab → Next → Merge/Split tab → Next → Pages tab → Next → Create tab → download after process completes",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-15",
+      "summary": "Image Converter: add Next button navigation across all tabs/steps in the converter workflow",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-16",
+      "summary": "Add ZIP download option to all applicable modules: Image Editor, Passport Photo Converter, Background Remover, and PDF Converter (batch export as zip)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-17",
+      "summary": "Image Editor: add a visible Crop button in the UI for cropping the image",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-18",
+      "summary": "Convert/package the web app as an APK (Android app)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-19",
+      "summary": "Image Editor Crop tab: clicking Crop button lets user select/define crop area on the image interactively; Text tab: user can add text anywhere on the image by clicking/dragging a text overlay",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-20",
+      "summary": "Add a new 'Video Downloader' tab where users can paste a YouTube or Facebook video link and click to download the video, using the provided API key (AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ)",
+      "reqIds": [],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "All-in-One Conversion Tool App",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

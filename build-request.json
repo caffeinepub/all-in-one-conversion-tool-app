@@ -1,0 +1,85 @@
+{
+  "kind": "build_request",
+  "title": "Add Video Downloader tab (YouTube & Facebook)",
+  "projectName": "All-in-One Conversion Tool",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-27",
+      "text": "Add a 'Video Downloader' tab to the existing TabNavigation component (frontend/src/components/TabNavigation.tsx) alongside the five existing tabs (Image Editor, PDF Converter, Image Converter, Passport Photo, BG Remover). Update App.tsx to conditionally render the new VideoDownloader module component when this tab is active. Maintain existing tab styling, scroll behavior, and smooth switching animations.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "make a new tab for download video from youtube and facebook"
+        ]
+      },
+      "acceptanceCriteria": [
+        "A 'Video Downloader' tab appears in the tab bar alongside the existing five tabs.",
+        "Clicking the tab activates it with the same active-state styling as other tabs.",
+        "The VideoDownloader module component is rendered when the tab is active and unmounted/hidden otherwise.",
+        "Existing tabs continue to work correctly without regression."
+      ]
+    },
+    {
+      "id": "REQ-28",
+      "text": "Create a new frontend module at frontend/src/modules/VideoDownloader.tsx. The module must provide: (1) A URL input field where users paste a YouTube or Facebook video link. (2) A 'Download' button that, when clicked, calls the YouTube Data API v3 using the API key AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ to fetch video metadata (title, thumbnail, available formats/qualities) for YouTube links. For Facebook links, display the pasted URL and attempt to resolve downloadable stream info via a client-side fetch to publicly accessible embed endpoints. (3) Display the video thumbnail and title once metadata is fetched. (4) Show available quality options (e.g., 360p, 720p, 1080p) when available and let the user select one. (5) Trigger a browser download of the video file via an anchor tag with the download attribute, or open the direct stream URL in a new tab if direct download is blocked by CORS. (6) Show a loading spinner while fetching metadata and a clear error message if the link is invalid, unsupported, or the API returns an error.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "user paste link and click to download for download video",
+          "my API KEY is - AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ"
+        ]
+      },
+      "acceptanceCriteria": [
+        "A URL text input is displayed with a placeholder indicating YouTube or Facebook URLs are accepted.",
+        "Clicking 'Download' with a valid YouTube URL calls the YouTube Data API v3 with key AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ and displays the video title and thumbnail.",
+        "A loading spinner is shown while the API request is in flight.",
+        "An error message is displayed when the URL is empty, malformed, or the API returns an error.",
+        "Available quality options are displayed when the API response includes them.",
+        "Clicking a quality/download option triggers a browser download or opens the stream URL.",
+        "The module is styled with the existing dark-first glassmorphism design system (glass-card, tool-btn, teal/cyan accents) consistent with other modules."
+      ]
+    },
+    {
+      "id": "REQ-29",
+      "text": "Apply the existing dark-first glassmorphism design system to the VideoDownloader module. Use glass-card surfaces for the input/result panels, tool-btn classes for action buttons, teal/cyan accent colors for the Download button and active states, and deep charcoal/slate backgrounds consistent with frontend/src/index.css utility classes. Ensure the module is fully mobile-responsive with the URL input and result area stacking vertically on small screens.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-4"
+        ],
+        "quotes": [
+          "make a new tab for download video from youtube and facebook"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The VideoDownloader module visually matches the design language of other modules (glass-card panels, teal/cyan buttons, charcoal background).",
+        "The layout is usable and readable on mobile screen widths (≤ 640px).",
+        "Button hover states and micro-interaction animations are consistent with other modules."
+      ]
+    }
+  ],
+  "constraints": [
+    "The API key AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ must be used as-is for YouTube Data API v3 calls; do not store it in the backend.",
+    "All video fetching and download logic must remain entirely client-side — no backend changes to backend/main.mo are required.",
+    "Do not modify any files listed under frontend.immutablePaths.",
+    "Existing tabs and modules must not regress."
+  ],
+  "nonGoals": [
+    "Server-side proxy or backend video transcoding.",
+    "Support for platforms other than YouTube and Facebook.",
+    "Storing downloaded videos or metadata in the backend canister.",
+    "APK or native mobile packaging.",
+    "Bypassing platform Terms of Service restrictions programmatically."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}
