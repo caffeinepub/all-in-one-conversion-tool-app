@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import { Upload, CreditCard, Minus, Plus } from 'lucide-react';
+import { Upload, CreditCard, Minus, Plus, ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePassportPhoto, SIZE_OPTIONS } from './PassportPhotoConverter/usePassportPhoto';
 import CopyGridPanel from './PassportPhotoConverter/CopyGridPanel';
@@ -72,6 +72,69 @@ export default function PassportPhotoConverter() {
         <p className="text-muted-foreground text-sm">Create professional passport photos with A4 sheet layout</p>
       </div>
 
+      {/* Top Preview Section */}
+      {state.processedDataUrl ? (
+        <div className="glass-card p-4">
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="flex-shrink-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 text-center">
+                Processed Photo Preview
+              </p>
+              <div
+                className="rounded-lg overflow-hidden border-2 border-primary/30 shadow-md bg-white"
+                style={{ width: 120, height: 154 }}
+              >
+                <img
+                  src={state.processedDataUrl}
+                  alt="Passport photo preview"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+            <div className="flex-1 space-y-1 text-center sm:text-left">
+              <p className="text-sm font-semibold text-foreground">Photo Ready</p>
+              <p className="text-xs text-muted-foreground">
+                Size: {currentSize.widthMm}×{currentSize.heightMm}mm · 300 DPI
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {state.copyCount} {state.copyCount === 1 ? 'copy' : 'copies'} on A4 sheet
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Export format: <span className="font-medium uppercase text-foreground">{state.exportFormat}</span>
+              </p>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="tool-btn text-xs mt-2"
+              >
+                <Upload className="w-3 h-3" />
+                Replace Photo
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div
+          className="glass-card p-6 flex flex-col items-center justify-center gap-3 cursor-pointer border-2 border-dashed border-border hover:border-primary/50 transition-colors"
+          onClick={() => fileInputRef.current?.click()}
+          onDrop={handleDrop}
+          onDragOver={e => e.preventDefault()}
+        >
+          <ImageIcon className="w-10 h-10 text-muted-foreground/40" />
+          <div className="text-center">
+            <p className="text-sm font-medium text-foreground">Upload a passport photo to get started</p>
+            <p className="text-xs text-muted-foreground mt-1">Click or drag & drop · JPG, PNG, WEBP</p>
+          </div>
+        </div>
+      )}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
       <div className="flex flex-col lg:flex-row gap-4">
         {/* Left Column: Controls */}
         <div className="w-full lg:w-72 flex-shrink-0 space-y-4">
@@ -93,13 +156,6 @@ export default function PassportPhotoConverter() {
               </p>
               <p className="text-xs text-muted-foreground/60 text-center mt-1">JPG, PNG, WEBP</p>
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileChange}
-            />
           </div>
 
           {/* Size Preset */}
@@ -182,7 +238,7 @@ export default function PassportPhotoConverter() {
           />
         </div>
 
-        {/* Right Column: Preview */}
+        {/* Right Column: A4 Grid Preview */}
         <div className="flex-1 min-w-0">
           <CopyGridPanel
             processedDataUrl={state.processedDataUrl}

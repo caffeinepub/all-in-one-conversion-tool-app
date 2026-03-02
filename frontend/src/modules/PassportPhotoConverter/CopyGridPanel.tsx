@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { TextConfig } from './usePassportPhoto';
-import { mmToPx, A4_WIDTH_MM, A4_HEIGHT_MM, A4_MARGIN_MM, PHOTO_GAP_MM } from './usePassportPhoto';
+import { A4_WIDTH_MM, A4_HEIGHT_MM, A4_MARGIN_MM, PHOTO_GAP_MM } from './usePassportPhoto';
 
 interface CopyGridPanelProps {
   processedDataUrl: string | null;
@@ -29,8 +29,10 @@ export default function CopyGridPanel({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Render at screen-friendly scale
-    const scale = 1.5; // px per mm at preview scale
+    // Use 300 DPI for high-quality rendering
+    const exportDPI = 300;
+    const scale = exportDPI / 25.4;
+
     const a4W = Math.round(A4_WIDTH_MM * scale);
     const a4H = Math.round(A4_HEIGHT_MM * scale);
     const marginPx = Math.round(A4_MARGIN_MM * scale);
@@ -41,17 +43,21 @@ export default function CopyGridPanel({
     canvas.width = a4W;
     canvas.height = a4H;
 
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, a4W, a4H);
 
     const img = new window.Image();
-    img.onload = () => {
+
+    const drawAll = () => {
       let x = marginPx;
       let y = marginPx;
       let count = 0;
 
       const textH = textConfig.enabled && textConfig.content
-        ? textConfig.fontSize + 6
+        ? Math.round(textConfig.fontSize * (exportDPI / 72) + 8)
         : 0;
 
       while (count < copyCount) {
@@ -66,11 +72,12 @@ export default function CopyGridPanel({
         // Draw text
         if (textConfig.enabled && textConfig.content) {
           const { fontFamily, fontSize, color, bold, italic, align } = textConfig;
-          ctx.font = `${italic ? 'italic ' : ''}${bold ? 'bold ' : ''}${fontSize}px ${fontFamily}`;
+          const scaledFontSize = Math.round(fontSize * (exportDPI / 72));
+          ctx.font = `${italic ? 'italic ' : ''}${bold ? 'bold ' : ''}${scaledFontSize}px ${fontFamily}`;
           ctx.fillStyle = color;
           ctx.textAlign = align;
           const textX = align === 'left' ? x : align === 'right' ? x + photoW : x + photoW / 2;
-          ctx.fillText(textConfig.content, textX, y + photoH + fontSize + 2, photoW);
+          ctx.fillText(textConfig.content, textX, y + photoH + scaledFontSize + 2, photoW);
         }
 
         x += photoW + gapPx;
@@ -79,9 +86,15 @@ export default function CopyGridPanel({
 
       // Draw A4 border
       ctx.strokeStyle = '#cccccc';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = Math.round(scale);
       ctx.strokeRect(0, 0, a4W, a4H);
     };
+
+    if (img.complete && img.naturalWidth > 0) {
+      drawAll();
+    } else {
+      img.onload = drawAll;
+    }
     img.src = processedDataUrl;
   }, [processedDataUrl, copyCount, widthMm, heightMm, textConfig, resolvedRef]);
 
@@ -109,7 +122,7 @@ export default function CopyGridPanel({
         />
       </div>
       <p className="text-xs text-muted-foreground text-center">
-        A4 (210×297mm) — {widthMm}×{heightMm}mm per photo
+        A4 (210×297mm) — {widthMm}×{heightMm}mm per photo · 300 DPI
       </p>
     </div>
   );

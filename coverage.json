@@ -1,48 +1,28 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-03-02T08:09:16.438Z",
+  "generatedAt": "2026-03-02T12:36:22.264Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 3,
-    "implemented": 3,
+    "total": 1,
+    "implemented": 1,
     "items": [
       {
-        "id": "REQ-27",
-        "summary": "Add a 'Video Downloader' tab to the existing TabNavigation component (frontend/src/components/TabNavigation.tsx) alongside the five existing tabs (Image Editor, PDF Converter, Image Converter, Passport Photo, BG Remover). Update App.tsx to conditionally render the new VideoDownloader module component when this tab is active. Maintain existing tab styling, scroll behavior, and smooth switching animations.",
+        "id": "REQ-35",
+        "summary": "In the Background Remover module (frontend/src/modules/BackgroundRemover.tsx and frontend/src/modules/BackgroundRemover/BrushToolPanel.tsx), update the brush/paint tool workflow so that: (1) The user activates the Paint tool button to enter paint mode and paints over the area of the image they want to remove (the selected area is highlighted with a semi-transparent red overlay as already implemented). (2) After painting the desired area, the user clicks a dedicated 'Erase' button (distinct from the existing erase-mode toggle) that processes the canvas and removes only the painted/selected pixels — making them transparent (PNG output) or replacing them with the chosen solid color (JPG output). (3) The 'Erase' button must be prominently visible in the BrushToolPanel or the main toolbar whenever there are painted brush strokes on the canvas (i.e., the mask is non-empty). (4) The existing 'Remove Background' flow in RemovalPanel.tsx must continue to work as before for auto-detect and full background removal. (5) The Erase button must be styled using the existing tool-btn and teal/cyan accent CSS classes consistent with the glassmorphism design system.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/TabNavigation.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/modules/BackgroundRemover/useBackgroundRemover.ts",
+          "frontend/src/modules/BackgroundRemover/BrushToolPanel.tsx",
+          "frontend/src/modules/BackgroundRemover.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/TabNavigation.tsx",
-          "frontend/src/App.tsx"
-        ]
-      },
-      {
-        "id": "REQ-28",
-        "summary": "Create a new frontend module at frontend/src/modules/VideoDownloader.tsx. The module must provide: (1) A URL input field where users paste a YouTube or Facebook video link. (2) A 'Download' button that, when clicked, calls the YouTube Data API v3 using the API key AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ to fetch video metadata (title, thumbnail, available formats/qualities) for YouTube links. For Facebook links, display the pasted URL and attempt to resolve downloadable stream info via a client-side fetch to publicly accessible embed endpoints. (3) Display the video thumbnail and title once metadata is fetched. (4) Show available quality options (e.g., 360p, 720p, 1080p) when available and let the user select one. (5) Trigger a browser download of the video file via an anchor tag with the download attribute, or open the direct stream URL in a new tab if direct download is blocked by CORS. (6) Show a loading spinner while fetching metadata and a clear error message if the link is invalid, unsupported, or the API returns an error.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/modules/VideoDownloader.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/modules/VideoDownloader.tsx"
-        ]
-      },
-      {
-        "id": "REQ-29",
-        "summary": "Apply the existing dark-first glassmorphism design system to the VideoDownloader module. Use glass-card surfaces for the input/result panels, tool-btn classes for action buttons, teal/cyan accent colors for the Download button and active states, and deep charcoal/slate backgrounds consistent with frontend/src/index.css utility classes. Ensure the module is fully mobile-responsive with the URL input and result area stacking vertically on small screens.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/modules/VideoDownloader.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/modules/VideoDownloader.tsx"
+          "frontend/src/modules/BackgroundRemover/useBackgroundRemover.ts",
+          "frontend/src/modules/BackgroundRemover/BrushToolPanel.tsx",
+          "frontend/src/modules/BackgroundRemover.tsx"
         ]
       }
     ]
@@ -52,9 +32,9 @@
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/App.tsx",
-    "frontend/src/components/TabNavigation.tsx",
-    "frontend/src/modules/VideoDownloader.tsx",
+    "frontend/src/modules/BackgroundRemover.tsx",
+    "frontend/src/modules/BackgroundRemover/BrushToolPanel.tsx",
+    "frontend/src/modules/BackgroundRemover/useBackgroundRemover.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

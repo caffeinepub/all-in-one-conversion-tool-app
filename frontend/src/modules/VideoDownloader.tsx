@@ -54,7 +54,9 @@ export default function VideoDownloader() {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const [videoMeta, setVideoMeta] = useState<VideoMeta | null>(null);
+  const [selectedQuality, setSelectedQuality] = useState<string>(QUALITY_OPTIONS[0].tag);
 
   async function handleFetch() {
     const trimmed = url.trim();
@@ -72,6 +74,7 @@ export default function VideoDownloader() {
     }
 
     setError(null);
+    setDownloadError(null);
     setVideoMeta(null);
     setLoading(true);
 
@@ -87,25 +90,26 @@ export default function VideoDownloader() {
           throw new Error('Video not found. It may be private, deleted, or unavailable in your region.');
         }
         const item = data.items[0];
-        const snippet = item.snippet;
-        const contentDetails = item.contentDetails;
+        const snippet = item.snippet ?? {};
+        const contentDetails = item.contentDetails ?? {};
         setVideoMeta({
           platform: 'youtube',
           videoId: ytId,
-          title: snippet.title,
+          title: snippet.title ?? 'Unknown Title',
           thumbnail:
             snippet.thumbnails?.maxres?.url ||
             snippet.thumbnails?.high?.url ||
             snippet.thumbnails?.medium?.url ||
             snippet.thumbnails?.default?.url ||
             '',
-          channelTitle: snippet.channelTitle,
-          duration: contentDetails?.duration ? formatDuration(contentDetails.duration) : undefined,
-          description: snippet.description?.slice(0, 200),
+          channelTitle: snippet.channelTitle ?? undefined,
+          duration: contentDetails.duration ? formatDuration(contentDetails.duration) : undefined,
+          description: snippet.description ? snippet.description.slice(0, 200) : undefined,
           watchUrl: `https://www.youtube.com/watch?v=${ytId}`,
         });
+        // Reset quality selection to default
+        setSelectedQuality(QUALITY_OPTIONS[0].tag);
       } else if (isFb) {
-        // Facebook: we can't bypass their auth/CORS, so we show the URL and guide the user
         setVideoMeta({
           platform: 'facebook',
           title: 'Facebook Video',
@@ -121,20 +125,80 @@ export default function VideoDownloader() {
     }
   }
 
-  function handleDownloadQuality(quality: { label: string; tag: string }) {
+  function handleDownload() {
     if (!videoMeta) return;
+    setDownloadError(null);
 
-    if (videoMeta.platform === 'youtube') {
-      // YouTube restricts direct stream downloads via browser due to CORS/auth.
-      // We open the watch URL and inform the user to use browser extensions or yt-dlp.
-      // For audio, we can try to open the embed URL.
-      if (quality.tag === 'audio') {
-        window.open(`https://www.youtube.com/watch?v=${videoMeta.videoId}`, '_blank');
-      } else {
-        window.open(`https://www.youtube.com/watch?v=${videoMeta.videoId}`, '_blank');
+    try {
+      if (videoMeta.platform === 'youtube') {
+        // Default to first quality if somehow none selected
+        const quality = selectedQuality || QUALITY_OPTIONS[0].tag;
+        const videoId = videoMeta.videoId;
+
+        if (!videoId) {
+          setDownloadError('Could not determine the video ID. Please try fetching the URL again.');
+          return;
+        }
+
+        const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        const opened = window.open(watchUrl, '_blank');
+        if (!opened) {
+          setDownloadError(
+            'Pop-up was blocked by your browser. Please allow pop-ups for this site and try again, or click the "Open on YouTube" link below.'
+          );
+        }
+        // Quality is informational — direct stream download is blocked by YouTube CORS/auth
+        void quality; // suppress unused warning
+      } else if (videoMeta.platform === 'facebook') {
+        const watchUrl = videoMeta.watchUrl;
+        if (!watchUrl) {
+          setDownloadError('No video URL available. Please try fetching the URL again.');
+          return;
+        }
+
+        // Try Facebook oEmbed to get more info (will likely fail due to CORS, handled gracefully)
+        const tryFacebookOEmbed = async () => {
+          try {
+            const oEmbedUrl = `https://www.facebook.com/plugins/video/oembed.json?url=${encodeURIComponent(watchUrl)}`;
+            const res = await fetch(oEmbedUrl, { mode: 'cors' });
+            if (res.ok) {
+              const data = await res.json();
+              const resolvedUrl: string = data.url || watchUrl;
+              const opened = window.open(resolvedUrl, '_blank');
+              if (!opened) {
+                setDownloadError(
+                  'Pop-up was blocked by your browser. Please allow pop-ups and try again.'
+                );
+              }
+            } else {
+              // oEmbed failed — fall back to opening the original URL
+              const opened = window.open(watchUrl, '_blank');
+              if (!opened) {
+                setDownloadError(
+                  'Pop-up was blocked by your browser. Please allow pop-ups and try again.'
+                );
+              }
+            }
+          } catch {
+            // CORS or network error — fall back to opening the original URL
+            const opened = window.open(watchUrl, '_blank');
+            if (!opened) {
+              setDownloadError(
+                'Pop-up was blocked by your browser. Please allow pop-ups and try again.'
+              );
+            }
+          }
+        };
+
+        tryFacebookOEmbed().catch(() => {
+          setDownloadError(
+            'Could not open the Facebook video. Please try opening the link manually.'
+          );
+        });
       }
-    } else if (videoMeta.platform === 'facebook') {
-      window.open(videoMeta.watchUrl, '_blank');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'An unexpected error occurred during download.';
+      setDownloadError(msg);
     }
   }
 
@@ -168,6 +232,7 @@ export default function VideoDownloader() {
               onChange={(e) => {
                 setUrl(e.target.value);
                 if (error) setError(null);
+                if (downloadError) setDownloadError(null);
               }}
               onKeyDown={handleKeyDown}
               placeholder="https://www.youtube.com/watch?v=... or https://www.facebook.com/..."
@@ -175,7 +240,7 @@ export default function VideoDownloader() {
             />
             {url && (
               <button
-                onClick={() => { setUrl(''); setVideoMeta(null); setError(null); }}
+                onClick={() => { setUrl(''); setVideoMeta(null); setError(null); setDownloadError(null); }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 aria-label="Clear URL"
               >
@@ -215,12 +280,21 @@ export default function VideoDownloader() {
         </div>
       </div>
 
-      {/* Error */}
+      {/* Fetch Error */}
       {error && (
         <Alert variant="destructive" className="animate-slide-up">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Download Error */}
+      {downloadError && (
+        <Alert variant="destructive" className="animate-slide-up border-destructive/50 bg-destructive/10">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Download Error</AlertTitle>
+          <AlertDescription>{downloadError}</AlertDescription>
         </Alert>
       )}
 
@@ -284,7 +358,7 @@ export default function VideoDownloader() {
             </div>
           </div>
 
-          {/* Download Options */}
+          {/* YouTube Download Options */}
           {videoMeta.platform === 'youtube' && (
             <div className="space-y-3">
               <p className="section-title">Select Quality & Download</p>
@@ -292,42 +366,56 @@ export default function VideoDownloader() {
                 {QUALITY_OPTIONS.map((q) => (
                   <button
                     key={q.tag}
-                    onClick={() => handleDownloadQuality(q)}
-                    className="tool-btn justify-between group hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                    onClick={() => setSelectedQuality(q.tag)}
+                    className={`tool-btn justify-between group transition-all duration-150 ${
+                      selectedQuality === q.tag
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'hover:bg-primary/10 hover:border-primary/50'
+                    }`}
                   >
                     <div className="flex items-center gap-2">
                       <Download className="w-3.5 h-3.5 flex-shrink-0" />
                       <span>{q.label}</span>
                     </div>
-                    <span className="text-xs opacity-60 group-hover:opacity-80">{q.note}</span>
+                    <span className={`text-xs ${selectedQuality === q.tag ? 'opacity-80' : 'opacity-60'}`}>
+                      {q.note}
+                    </span>
                   </button>
                 ))}
               </div>
+
+              <Button
+                onClick={handleDownload}
+                className="w-full flex items-center justify-center gap-2 py-3 h-auto bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-xl transition-all duration-200"
+              >
+                <Download className="w-4 h-4" />
+                Open Video on YouTube
+              </Button>
 
               {/* Info notice */}
               <Alert className="border-primary/20 bg-primary/5">
                 <Info className="h-4 w-4 text-primary" />
                 <AlertTitle className="text-sm text-foreground">How downloads work</AlertTitle>
                 <AlertDescription className="text-xs text-muted-foreground">
-                  Clicking a quality option opens the video on YouTube. To save the file, use a browser
-                  extension (e.g. <strong>Video DownloadHelper</strong>) or a tool like{' '}
+                  Clicking the button opens the video on YouTube in a new tab. To save the file, use a
+                  browser extension (e.g. <strong>Video DownloadHelper</strong>) or a tool like{' '}
                   <strong>yt-dlp</strong>. Direct browser downloads are blocked by YouTube's servers.
                 </AlertDescription>
               </Alert>
             </div>
           )}
 
-          {/* Facebook notice */}
+          {/* Facebook Download Options */}
           {videoMeta.platform === 'facebook' && (
             <div className="space-y-3">
               <p className="section-title">Download Options</p>
-              <button
-                onClick={() => handleDownloadQuality({ label: 'Open Video', tag: 'open' })}
-                className="tool-btn w-full justify-center gap-2 hover:bg-primary hover:text-primary-foreground hover:border-primary"
+              <Button
+                onClick={handleDownload}
+                className="w-full flex items-center justify-center gap-2 py-3 h-auto bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-xl transition-all duration-200"
               >
                 <ExternalLink className="w-4 h-4" />
                 Open Video on Facebook
-              </button>
+              </Button>
 
               <Alert className="border-primary/20 bg-primary/5">
                 <Info className="h-4 w-4 text-primary" />

@@ -1,82 +1,42 @@
 {
   "kind": "build_request",
-  "title": "Add Video Downloader tab (YouTube & Facebook)",
-  "projectName": "All-in-One Conversion Tool",
+  "title": "Background Remover: Paint-to-Select + Erase Button Workflow",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-27",
-      "text": "Add a 'Video Downloader' tab to the existing TabNavigation component (frontend/src/components/TabNavigation.tsx) alongside the five existing tabs (Image Editor, PDF Converter, Image Converter, Passport Photo, BG Remover). Update App.tsx to conditionally render the new VideoDownloader module component when this tab is active. Maintain existing tab styling, scroll behavior, and smooth switching animations.",
+      "id": "REQ-35",
+      "text": "In the Background Remover module (frontend/src/modules/BackgroundRemover.tsx and frontend/src/modules/BackgroundRemover/BrushToolPanel.tsx), update the brush/paint tool workflow so that: (1) The user activates the Paint tool button to enter paint mode and paints over the area of the image they want to remove (the selected area is highlighted with a semi-transparent red overlay as already implemented). (2) After painting the desired area, the user clicks a dedicated 'Erase' button (distinct from the existing erase-mode toggle) that processes the canvas and removes only the painted/selected pixels — making them transparent (PNG output) or replacing them with the chosen solid color (JPG output). (3) The 'Erase' button must be prominently visible in the BrushToolPanel or the main toolbar whenever there are painted brush strokes on the canvas (i.e., the mask is non-empty). (4) The existing 'Remove Background' flow in RemovalPanel.tsx must continue to work as before for auto-detect and full background removal. (5) The Erase button must be styled using the existing tool-btn and teal/cyan accent CSS classes consistent with the glassmorphism design system.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-4"
+          "msg-latest"
         ],
         "quotes": [
-          "make a new tab for download video from youtube and facebook"
+          "user paint button and select image area after select area click to erase button for removing background from photo"
         ]
       },
       "acceptanceCriteria": [
-        "A 'Video Downloader' tab appears in the tab bar alongside the existing five tabs.",
-        "Clicking the tab activates it with the same active-state styling as other tabs.",
-        "The VideoDownloader module component is rendered when the tab is active and unmounted/hidden otherwise.",
-        "Existing tabs continue to work correctly without regression."
-      ]
-    },
-    {
-      "id": "REQ-28",
-      "text": "Create a new frontend module at frontend/src/modules/VideoDownloader.tsx. The module must provide: (1) A URL input field where users paste a YouTube or Facebook video link. (2) A 'Download' button that, when clicked, calls the YouTube Data API v3 using the API key AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ to fetch video metadata (title, thumbnail, available formats/qualities) for YouTube links. For Facebook links, display the pasted URL and attempt to resolve downloadable stream info via a client-side fetch to publicly accessible embed endpoints. (3) Display the video thumbnail and title once metadata is fetched. (4) Show available quality options (e.g., 360p, 720p, 1080p) when available and let the user select one. (5) Trigger a browser download of the video file via an anchor tag with the download attribute, or open the direct stream URL in a new tab if direct download is blocked by CORS. (6) Show a loading spinner while fetching metadata and a clear error message if the link is invalid, unsupported, or the API returns an error.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-4"
-        ],
-        "quotes": [
-          "user paste link and click to download for download video",
-          "my API KEY is - AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ"
-        ]
-      },
-      "acceptanceCriteria": [
-        "A URL text input is displayed with a placeholder indicating YouTube or Facebook URLs are accepted.",
-        "Clicking 'Download' with a valid YouTube URL calls the YouTube Data API v3 with key AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ and displays the video title and thumbnail.",
-        "A loading spinner is shown while the API request is in flight.",
-        "An error message is displayed when the URL is empty, malformed, or the API returns an error.",
-        "Available quality options are displayed when the API response includes them.",
-        "Clicking a quality/download option triggers a browser download or opens the stream URL.",
-        "The module is styled with the existing dark-first glassmorphism design system (glass-card, tool-btn, teal/cyan accents) consistent with other modules."
-      ]
-    },
-    {
-      "id": "REQ-29",
-      "text": "Apply the existing dark-first glassmorphism design system to the VideoDownloader module. Use glass-card surfaces for the input/result panels, tool-btn classes for action buttons, teal/cyan accent colors for the Download button and active states, and deep charcoal/slate backgrounds consistent with frontend/src/index.css utility classes. Ensure the module is fully mobile-responsive with the URL input and result area stacking vertically on small screens.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-4"
-        ],
-        "quotes": [
-          "make a new tab for download video from youtube and facebook"
-        ]
-      },
-      "acceptanceCriteria": [
-        "The VideoDownloader module visually matches the design language of other modules (glass-card panels, teal/cyan buttons, charcoal background).",
-        "The layout is usable and readable on mobile screen widths (≤ 640px).",
-        "Button hover states and micro-interaction animations are consistent with other modules."
+        "A Paint button is visible in the Background Remover module that activates brush/paint mode on the canvas.",
+        "When paint mode is active, the user can paint over any area of the image and the painted region is highlighted with a semi-transparent red overlay.",
+        "After painting, an 'Erase' button becomes visible/enabled in the panel.",
+        "Clicking the Erase button removes (erases) only the pixels covered by the painted brush strokes — making them transparent for PNG output or replacing them with the selected background color for JPG output.",
+        "The result is immediately reflected in the canvas preview and the before/after preview.",
+        "The Erase button is disabled or hidden when no brush strokes have been painted (empty mask).",
+        "The existing Auto Detect and Remove Background buttons in RemovalPanel continue to function independently.",
+        "The Erase button follows the existing tool-btn glassmorphism styling with teal/cyan accent colors."
       ]
     }
   ],
   "constraints": [
-    "The API key AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ must be used as-is for YouTube Data API v3 calls; do not store it in the backend.",
-    "All video fetching and download logic must remain entirely client-side — no backend changes to backend/main.mo are required.",
-    "Do not modify any files listed under frontend.immutablePaths.",
-    "Existing tabs and modules must not regress."
+    "Do not break the existing brush tool undo functionality or the erase-mode toggle (for unpainting brush strokes).",
+    "Do not modify any files listed in frontend.immutablePaths.",
+    "All processing must remain client-side — no backend involvement.",
+    "Maintain the existing glassmorphism dark-first design system."
   ],
   "nonGoals": [
-    "Server-side proxy or backend video transcoding.",
-    "Support for platforms other than YouTube and Facebook.",
-    "Storing downloaded videos or metadata in the backend canister.",
-    "APK or native mobile packaging.",
-    "Bypassing platform Terms of Service restrictions programmatically."
+    "Adding AI or ML-based automatic background detection.",
+    "Changing the existing Auto Detect or Remove Background button behavior.",
+    "Modifying any other module (Image Editor, PDF Converter, Image Converter, Passport Photo, Video Downloader)."
   ],
   "imageRequirements": {
     "required": [],

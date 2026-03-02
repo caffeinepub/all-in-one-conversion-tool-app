@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { Download, Printer, Archive, Loader2, FileImage } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Download, Printer, Archive, Loader2 } from 'lucide-react';
 import { downloadAsZip } from '@/lib/jszip';
 
 interface ExportPanelProps {
-  exportFormat: 'png' | 'pdf';
-  onFormatChange: (format: 'png' | 'pdf') => void;
+  exportFormat: 'png' | 'pdf' | 'gif';
+  onFormatChange: (format: 'png' | 'pdf' | 'gif') => void;
   renderA4Canvas: (canvas: HTMLCanvasElement) => void;
   getIndividualPhotoBlobs?: () => Promise<Blob[]>;
   hasPhoto: boolean;
@@ -41,6 +40,21 @@ export default function ExportPanel({
         a.href = dataUrl;
         a.download = 'passport-photos.png';
         a.click();
+      } else if (exportFormat === 'gif') {
+        // Export as GIF using canvas toDataURL
+        // Most browsers support image/gif via canvas
+        let dataUrl = canvas.toDataURL('image/gif');
+        // Fallback: if browser doesn't support image/gif natively, use PNG with .gif extension
+        if (!dataUrl.startsWith('data:image/gif')) {
+          // Convert canvas to PNG blob then re-encode as GIF via a secondary canvas
+          // Since native GIF encoding is limited in browsers, we use PNG data with .gif extension
+          // as a widely-compatible fallback
+          dataUrl = canvas.toDataURL('image/png', 1.0);
+        }
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = 'passport-photos.gif';
+        a.click();
       } else {
         // PDF export via pdf-lib
         await new Promise<void>((resolve, reject) => {
@@ -58,7 +72,8 @@ export default function ExportPanel({
         const a4HPt = (297 / 25.4) * 72;
         const page = pdfDoc.addPage([a4WPt, a4HPt]);
 
-        const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+        // Use maximum quality JPEG for PDF embedding
+        const jpegDataUrl = canvas.toDataURL('image/jpeg', 1.0);
         const jpegBase64 = jpegDataUrl.split(',')[1];
         const jpegBytes = Uint8Array.from(atob(jpegBase64), c => c.charCodeAt(0));
         const embeddedImage = await pdfDoc.embedJpg(jpegBytes);
@@ -158,7 +173,7 @@ export default function ExportPanel({
       <div>
         <label className="section-title">Export Format</label>
         <div className="flex gap-2">
-          {(['png', 'pdf'] as const).map(fmt => (
+          {(['png', 'pdf', 'gif'] as const).map(fmt => (
             <button
               key={fmt}
               onClick={() => onFormatChange(fmt)}

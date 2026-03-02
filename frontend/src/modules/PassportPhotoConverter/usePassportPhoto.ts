@@ -36,7 +36,7 @@ export interface PassportPhotoState {
   customHeight: number;
   copyCount: number;
   textConfig: TextConfig;
-  exportFormat: 'png' | 'pdf';
+  exportFormat: 'png' | 'pdf' | 'gif';
   isProcessing: boolean;
 }
 
@@ -137,6 +137,7 @@ export function usePassportPhoto() {
       ? { widthMm: state.customWidth, heightMm: state.customHeight }
       : SIZE_OPTIONS.find(o => o.id === state.selectedPreset) ?? { widthMm: 35, heightMm: 45 };
 
+    // Use full 300 DPI for high-quality output
     const targetW = mmToPx(widthMm);
     const targetH = mmToPx(heightMm);
 
@@ -144,6 +145,9 @@ export function usePassportPhoto() {
     canvas.width = targetW;
     canvas.height = targetH;
     const ctx = canvas.getContext('2d')!;
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
 
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, targetW, targetH);
@@ -164,6 +168,7 @@ export function usePassportPhoto() {
 
     applyEnhancements(ctx, targetW, targetH);
 
+    // Export at maximum quality (1.0)
     const dataUrl = canvas.toDataURL('image/png', 1.0);
     processedCanvasRef.current = canvas;
 
@@ -197,17 +202,21 @@ export function usePassportPhoto() {
     setState(prev => ({ ...prev, textConfig: { ...prev.textConfig, ...updates } }));
   }, []);
 
-  const updateExportFormat = useCallback((format: 'png' | 'pdf') => {
+  const updateExportFormat = useCallback((format: 'png' | 'pdf' | 'gif') => {
     setState(prev => ({ ...prev, exportFormat: format }));
   }, []);
 
+  /**
+   * Renders the A4 sheet canvas at full 300 DPI for high-quality export.
+   */
   const renderA4Canvas = useCallback((canvas: HTMLCanvasElement): void => {
     if (!state.processedDataUrl) return;
 
     const { widthMm, heightMm } = getCurrentSize();
 
-    const previewDPI = 150;
-    const scale = previewDPI / 25.4;
+    // Use full 300 DPI for export quality
+    const exportDPI = 300;
+    const scale = exportDPI / 25.4;
 
     const a4W = Math.round(A4_WIDTH_MM * scale);
     const a4H = Math.round(A4_HEIGHT_MM * scale);
@@ -220,6 +229,9 @@ export function usePassportPhoto() {
     canvas.height = a4H;
     const ctx = canvas.getContext('2d')!;
 
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, a4W, a4H);
 
@@ -231,10 +243,14 @@ export function usePassportPhoto() {
     let count = 0;
 
     const textH = state.textConfig.enabled && state.textConfig.content
-      ? Math.round(state.textConfig.fontSize * scale / (previewDPI / 72) + 4)
+      ? Math.round(state.textConfig.fontSize * (exportDPI / 72) + 8)
       : 0;
 
-    img.onload = () => {
+    const drawAll = () => {
+      x = marginPx;
+      y = marginPx;
+      count = 0;
+
       while (count < state.copyCount) {
         if (x + photoW > a4W - marginPx) {
           x = marginPx;
@@ -246,12 +262,13 @@ export function usePassportPhoto() {
 
         if (state.textConfig.enabled && state.textConfig.content) {
           const { fontFamily, fontSize, color, bold, italic, align } = state.textConfig;
-          const fontStyle = `${italic ? 'italic ' : ''}${bold ? 'bold ' : ''}${fontSize}px ${fontFamily}`;
+          const scaledFontSize = Math.round(fontSize * (exportDPI / 72));
+          const fontStyle = `${italic ? 'italic ' : ''}${bold ? 'bold ' : ''}${scaledFontSize}px ${fontFamily}`;
           ctx.font = fontStyle;
           ctx.fillStyle = color;
           ctx.textAlign = align;
           const textX = align === 'left' ? x : align === 'right' ? x + photoW : x + photoW / 2;
-          ctx.fillText(state.textConfig.content, textX, y + photoH + fontSize + 2, photoW);
+          ctx.fillText(state.textConfig.content, textX, y + photoH + scaledFontSize + 2, photoW);
         }
 
         x += photoW + gapPx;
@@ -259,9 +276,10 @@ export function usePassportPhoto() {
       }
     };
 
-    // If image is already loaded (cached), trigger manually
-    if (img.complete) {
-      img.onload(new Event('load'));
+    if (img.complete && img.naturalWidth > 0) {
+      drawAll();
+    } else {
+      img.onload = drawAll;
     }
   }, [state.processedDataUrl, state.copyCount, state.textConfig, getCurrentSize]);
 

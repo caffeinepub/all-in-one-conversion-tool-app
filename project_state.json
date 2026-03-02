@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 17,
+  "projectStateVersion": 23,
   "summary": "All-in-One Conversion Tool App website with five main modules: Image Editor, PDF Converter, Image Converter, Passport Size Photo Converter, and Image Background Remover. Features dark/light mode, mobile-responsive modern UI with smooth animations.",
   "architectural_notes": [
     "Client-side processing preferred for image/PDF operations to avoid server costs and privacy concerns",
@@ -243,6 +243,54 @@
         "REQ-29"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-in-the-videodownloader-module-frontend-src-modules-videodownloader-tsx-fix-all-errors-related-to-the-download-functionality-the-youtube-data-api-v3-api-key-aizasydlj5yvdipe6oyjniw-ojg5cz5-krj33yq-only-returns-metadata-title-thumbnail-video-id-and-does-not-provide-direct-downloadable-video-stream-urls-update-the-download-flow-so-that-1-for-youtube-links-after-fetching-metadata-via-the-youtube-data-api-the-download-button-opens-the-best-available-direct-stream-url-in-a-new-browser-tab-e-g-a-youtube-watch-url-or-embed-url-since-direct-binary-download-is-blocked-by-cors-display-a-clear-user-facing-message-explaining-the-video-will-open-in-a-new-tab-for-saving-2-for-facebook-links-attempt-a-client-side-fetch-to-the-facebook-oembed-endpoint-https-www-facebook-com-plugins-video-oembed-json-url-encoded-url-to-retrieve-the-video-url-then-open-the-resolved-url-in-a-new-tab-if-the-fetch-fails-with-a-cors-or-network-error-display-a-clear-error-message-stating-the-link-could-not-be-resolved-and-suggest-opening-the-link-manually-3-ensure-the-download-anchor-tag-or-new-tab-open-does-not-throw-uncaught-javascript-errors-e-g-null-reference-on-missing-url-unhandled-promise-rejections-4-if-no-quality-option-is-selected-default-to-the-first-available-quality-before-attempting-the-download-5-show-a-visible-user-friendly-error-message-styled-consistently-with-the-existing-glassmorphism-design-whenever-the-download-action-fails-for-any-reason",
+      "title": "In the VideoDownloader module (frontend/src/modules/VideoDownloader.tsx), fix all errors related to the download functionality. The YouTube Data API v3 (API key: AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ) only returns metadata (title, thumbnail, video ID) and does not provide direct downloadable video stream URLs. Update the download flow so that: (1) For YouTube links, after fetching metadata via the YouTube Data API, the 'Download' button opens the best available direct stream URL in a new browser tab (e.g., a YouTube watch URL or embed URL) since direct binary download is blocked by CORS; display a clear user-facing message explaining the video will open in a new tab for saving. (2) For Facebook links, attempt a client-side fetch to the Facebook oEmbed endpoint (https://www.facebook.com/plugins/video/oembed.json?url=<encoded_url>) to retrieve the video URL, then open the resolved URL in a new tab; if the fetch fails with a CORS or network error, display a clear error message stating the link could not be resolved and suggest opening the link manually. (3) Ensure the download anchor tag or new-tab open does not throw uncaught JavaScript errors (e.g., null reference on missing URL, unhandled promise rejections). (4) If no quality option is selected, default to the first available quality before attempting the download. (5) Show a visible, user-friendly error message (styled consistently with the existing glassmorphism design) whenever the download action fails for any reason.",
+      "reqIds": [
+        "REQ-30"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-image-converter-module-frontend-src-modules-imageconverter-tsx-and-its-sub-panels-display-a-persistent-preview-of-the-currently-selected-loaded-image-on-the-left-side-of-the-workspace-across-all-four-tabs-upload-settings-preview-export-the-preview-panel-should-show-the-active-image-at-all-times-once-at-least-one-image-has-been-uploaded-and-update-when-the-user-selects-a-different-image-from-the-batch-on-mobile-the-preview-should-stack-above-the-tab-content",
+      "title": "In the Image Converter module (frontend/src/modules/ImageConverter.tsx and its sub-panels), display a persistent preview of the currently selected/loaded image on the left side of the workspace across all four tabs (Upload, Settings, Preview, Export). The preview panel should show the active image at all times once at least one image has been uploaded, and update when the user selects a different image from the batch. On mobile, the preview should stack above the tab content.",
+      "reqIds": [
+        "REQ-31"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-passport-photo-converter-module-frontend-src-modules-passportphotoconverter-tsx-and-frontend-src-modules-passportphotoconverter-usepassportphoto-ts-ensure-that-all-canvas-rendering-and-export-operations-use-the-maximum-available-resolution-when-exporting-via-canvas-todataurl-use-a-scale-factor-that-renders-at-the-full-target-dpi-300-dpi-for-standard-passport-sizes-without-downscaling-the-output-png-pdf-and-zip-exports-should-all-be-at-this-high-quality-resolution",
+      "title": "In the Passport Photo Converter module (frontend/src/modules/PassportPhotoConverter.tsx and frontend/src/modules/PassportPhotoConverter/usePassportPhoto.ts), ensure that all canvas rendering and export operations use the maximum available resolution. When exporting via Canvas.toDataURL, use a scale factor that renders at the full target DPI (300 DPI for standard passport sizes) without downscaling. The output PNG, PDF, and ZIP exports should all be at this high-quality resolution.",
+      "reqIds": [
+        "REQ-32"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-passport-photo-converter-module-frontend-src-modules-passportphotoconverter-exportpanel-tsx-and-frontend-src-modules-passportphotoconverter-tsx-add-gif-as-an-export-format-option-alongside-the-existing-png-and-pdf-options-when-gif-is-selected-export-the-a4-sheet-or-individual-passport-photo-copies-as-a-gif-image-using-a-client-side-approach-e-g-canvas-todataurl-with-image-gif-mime-type-or-a-cdn-loaded-gif-encoder-library-include-gif-in-the-format-selector-dropdown-radio-group",
+      "title": "In the Passport Photo Converter module (frontend/src/modules/PassportPhotoConverter/ExportPanel.tsx and frontend/src/modules/PassportPhotoConverter.tsx), add GIF as an export format option alongside the existing PNG and PDF options. When GIF is selected, export the A4 sheet or individual passport photo copies as a GIF image using a client-side approach (e.g., Canvas toDataURL with image/gif MIME type, or a CDN-loaded GIF encoder library). Include GIF in the format selector dropdown/radio group.",
+      "reqIds": [
+        "REQ-33"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-passport-photo-converter-module-frontend-src-modules-passportphotoconverter-tsx-display-a-preview-of-the-uploaded-and-processed-passport-photo-at-the-top-of-the-module-workspace-above-the-size-copies-controls-and-the-a4-grid-the-preview-should-show-the-enhanced-cropped-passport-photo-as-it-will-appear-in-each-copy-updating-in-real-time-when-the-user-changes-size-presets-or-enhancements",
+      "title": "In the Passport Photo Converter module (frontend/src/modules/PassportPhotoConverter.tsx), display a preview of the uploaded and processed passport photo at the top of the module workspace, above the size/copies controls and the A4 grid. The preview should show the enhanced/cropped passport photo as it will appear in each copy, updating in real-time when the user changes size presets or enhancements.",
+      "reqIds": [
+        "REQ-34"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-background-remover-module-frontend-src-modules-backgroundremover-tsx-and-frontend-src-modules-backgroundremover-brushtoolpanel-tsx-update-the-brush-paint-tool-workflow-so-that-1-the-user-activates-the-paint-tool-button-to-enter-paint-mode-and-paints-over-the-area-of-the-image-they-want-to-remove-the-selected-area-is-highlighted-with-a-semi-transparent-red-overlay-as-already-implemented-2-after-painting-the-desired-area-the-user-clicks-a-dedicated-erase-button-distinct-from-the-existing-erase-mode-toggle-that-processes-the-canvas-and-removes-only-the-painted-selected-pixels-making-them-transparent-png-output-or-replacing-them-with-the-chosen-solid-color-jpg-output-3-the-erase-button-must-be-prominently-visible-in-the-brushtoolpanel-or-the-main-toolbar-whenever-there-are-painted-brush-strokes-on-the-canvas-i-e-the-mask-is-non-empty-4-the-existing-remove-background-flow-in-removalpanel-tsx-must-continue-to-work-as-before-for-auto-detect-and-full-background-removal-5-the-erase-button-must-be-styled-using-the-existing-tool-btn-and-teal-cyan-accent-css-classes-consistent-with-the-glassmorphism-design-system",
+      "title": "In the Background Remover module (frontend/src/modules/BackgroundRemover.tsx and frontend/src/modules/BackgroundRemover/BrushToolPanel.tsx), update the brush/paint tool workflow so that: (1) The user activates the Paint tool button to enter paint mode and paints over the area of the image they want to remove (the selected area is highlighted with a semi-transparent red overlay as already implemented). (2) After painting the desired area, the user clicks a dedicated 'Erase' button (distinct from the existing erase-mode toggle) that processes the canvas and removes only the painted/selected pixels — making them transparent (PNG output) or replacing them with the chosen solid color (JPG output). (3) The 'Erase' button must be prominently visible in the BrushToolPanel or the main toolbar whenever there are painted brush strokes on the canvas (i.e., the mask is non-empty). (4) The existing 'Remove Background' flow in RemovalPanel.tsx must continue to work as before for auto-detect and full background removal. (5) The Erase button must be styled using the existing tool-btn and teal/cyan accent CSS classes consistent with the glassmorphism design system.",
+      "reqIds": [
+        "REQ-35"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -335,6 +383,24 @@
     {
       "id": "AR-20",
       "summary": "Add a new 'Video Downloader' tab where users can paste a YouTube or Facebook video link and click to download the video, using the provided API key (AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-21",
+      "summary": "Image Converter: show loaded image preview on the left side across all tabs in the Image Converter module",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-22",
+      "summary": "Passport Photo Converter: ensure high-quality photo resolution output, add GIF as an export format option, and show photo preview at the top of the module",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-23",
+      "summary": "Background Remover: user paints/selects an area using the brush/paint tool, then clicks an 'Erase' button to remove the background from the selected area of the photo",
       "reqIds": [],
       "status": "pending"
     }

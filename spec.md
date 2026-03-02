@@ -1,17 +1,15 @@
 # Specification
 
 ## Summary
-**Goal:** Add a "Video Downloader" tab to the existing All-in-One Conversion Tool that lets users download videos from YouTube and Facebook entirely client-side.
+**Goal:** Update the Background Remover module to support a Paint-to-Select + Erase button workflow, allowing users to manually paint over areas they want to remove and then erase only those painted pixels.
 
 **Planned changes:**
-- Add a "Video Downloader" tab to the existing `TabNavigation` component alongside the five current tabs, maintaining existing tab styling and animations.
-- Update `App.tsx` to render the new `VideoDownloader` module when the tab is active.
-- Create a new `VideoDownloader` module with a URL input field and a "Download" button.
-- For YouTube links, call the YouTube Data API v3 (using the provided API key client-side) to fetch video title, thumbnail, and available quality options (360p, 720p, 1080p, etc.).
-- For Facebook links, attempt to resolve downloadable stream info via a client-side fetch to publicly accessible embed endpoints.
-- Display the video thumbnail, title, and quality selector once metadata is fetched.
-- Trigger a browser download via an anchor tag or open the stream URL in a new tab if CORS blocks direct download.
-- Show a loading spinner while fetching and a clear error message on invalid/unsupported URLs or API errors.
-- Style the module with the existing dark-first glassmorphism design system (glass-card panels, teal/cyan accents, charcoal backgrounds) and ensure mobile-responsive layout.
+- Add a dedicated "Paint" button in the BrushToolPanel that activates paint/brush mode, highlighting painted areas with a semi-transparent red overlay.
+- Add a dedicated "Erase" button that appears/becomes enabled only when the paint mask is non-empty (i.e., brush strokes exist on the canvas).
+- Clicking "Erase" removes only the painted pixels — making them transparent for PNG output or replacing them with the selected solid color for JPG output — and updates the canvas and before/after preview immediately.
+- Hide or disable the "Erase" button when no brush strokes have been painted.
+- Style the "Erase" button using the existing `tool-btn` and teal/cyan accent CSS classes consistent with the glassmorphism design system.
+- Keep the existing Auto Detect and Remove Background flow in RemovalPanel.tsx unchanged.
+- Preserve the existing brush undo functionality and erase-mode toggle (for unpainting strokes).
 
-**User-visible outcome:** Users can paste a YouTube or Facebook video URL, fetch video metadata, select a quality, and download or open the video — all within a new dedicated tab in the tool.
+**User-visible outcome:** Users can manually paint over any region of an image in the Background Remover, then click the "Erase" button to remove only that painted area, giving them precise manual control over which parts of the image are erased.
