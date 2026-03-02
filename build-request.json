@@ -1,169 +1,153 @@
 {
   "kind": "build_request",
-  "title": "PDF Scanner: Replace Live Camera with Choose from Files + Auto Edge Detection & Full Scan-to-PDF Workflow",
-  "projectName": "All-in-One Conversion Tool",
+  "title": "New Multimedia App: MP3 Cutter, Video Cutter, Video Downloader, IP Camera",
+  "projectName": "Multimedia Studio",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-73",
-      "text": "In the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), remove the 'Live Scanner' camera button entirely. Replace it with only a 'Choose from Files' button (on mobile, label it 'Choose from Files (Google Files / Scanner)'). When clicked, open a native file picker accepting image files (JPG, PNG, JPEG, WEBP) and PDF files. Selected image files are added directly as scanned page entries. Selected PDF files have their pages rendered as individual scanned page entries using PDF.js loaded from CDN. All imported pages must appear in the scanned pages thumbnail list and participate in all subsequent crop, adjustment, and 'Convert to PDF' export operations. Remove all camera/getUserMedia/video-element code from the component.",
+      "id": "REQ-87",
+      "text": "Create a new standalone React application (separate from the existing conversion tool) at the root level with a tabbed navigation layout containing four tabs: 'MP3 Cutter', 'Video Cutter', 'Video Downloader', and 'IP Camera'. Include a dark mode / light mode toggle in the header. The layout must be fully mobile-responsive with smooth tab-switching animations.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-latest"
         ],
         "quotes": [
-          "removed live camera button and add choose from files button"
+          "create a new multimedia app there are option MP3 cutter, video cutter, video downloder, IP Camera"
         ]
       },
       "acceptanceCriteria": [
-        "No 'Live Scanner' or camera button is visible in the PDF Scanner panel.",
-        "A 'Choose from Files' button is prominently displayed; on mobile it reads 'Choose from Files (Google Files / Scanner)'.",
-        "Clicking the button opens a native file picker accepting image/png, image/jpeg, image/webp, and application/pdf MIME types.",
-        "Selected image files are immediately appended to the scanned pages list as individual entries.",
-        "Selected PDF files have each page rendered via PDF.js and appended as individual scanned page entries.",
-        "No navigator.mediaDevices or getUserMedia calls remain in the component.",
-        "All imported pages appear as numbered thumbnails in the scanned pages list panel."
+        "App renders with four clearly labeled tabs: MP3 Cutter, Video Cutter, Video Downloader, IP Camera",
+        "Dark/light mode toggle is present in the header and switches the theme",
+        "Tab switching is smooth with animation",
+        "Layout is fully mobile-responsive on screens 320px and wider",
+        "Active tab is visually highlighted"
       ]
     },
     {
-      "id": "REQ-74",
-      "text": "Within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), after a user imports image files via the 'Choose from Files' button, automatically detect document/page edges for each imported image using a Canvas-based edge detection algorithm (pixel contrast analysis or equivalent). Apply an automatic perspective crop to the detected document quadrilateral without requiring manual user interaction. Display the auto-cropped result as the default preview for each scanned page. Provide a 'Manual Crop' fallback mode with draggable corner handles so the user can override the automatic crop if needed. Provide an 'Apply Crop' button to confirm and a 'Reset' button to revert to the uncropped original.",
+      "id": "REQ-88",
+      "text": "Implement the MP3 Cutter module. Provide a file upload button that accepts MP3, AAC, WAV, and MP4 files. After upload, load the audio using the Web Audio API and render a waveform visualization on a Canvas element. Display the audio duration. Allow the user to drag two range handles (start and end markers) on the waveform to select a segment of the audio track. Show the selected start time and end time numerically. Provide a 'Cut & Download' button that, when clicked, extracts the selected audio segment client-side (using AudioBuffer slicing via the Web Audio API and encoding to MP3 using a CDN-loaded lamejs or similar encoder library), then triggers a browser download of the trimmed audio as an MP3 file.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-latest"
         ],
         "quotes": [
-          "user capture image and automatic detected page scan and crop"
+          "MP3 cutter: import mp3, AAC, WAV, mp5 or mp4 file convert in mp3 audio cutter, user select audio track and cut and dounload audio file"
         ]
       },
       "acceptanceCriteria": [
-        "After a file is imported, the component attempts automatic document edge detection on the Canvas.",
-        "A perspective-corrected crop is applied automatically to each imported image and shown as the default preview.",
-        "A toggle or radio control allows switching between Auto Crop and Manual Crop modes.",
-        "In Manual Crop mode, an interactive overlay with draggable corner handles is shown on the image.",
-        "An 'Apply Crop' button confirms the crop and updates the scanned page entry.",
-        "A 'Reset' button reverts the page to the uncropped original image.",
-        "If auto-detection fails or finds no clear edges, the full image is used as the default without crashing."
+        "File picker accepts .mp3, .aac, .wav, .mp4 files",
+        "Waveform is rendered on a Canvas after file is loaded",
+        "Two draggable handles allow selecting start and end positions on the waveform",
+        "Selected start time and end time are displayed numerically in seconds or MM:SS format",
+        "Clicking 'Cut & Download' triggers a browser download of the trimmed audio as an MP3 file",
+        "The downloaded file contains only the audio between the selected start and end markers"
       ]
     },
     {
-      "id": "REQ-75",
-      "text": "Within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), provide per-page image adjustment controls for each scanned/imported page: a Brightness slider (range -100 to +100), a Contrast slider (range -100 to +100), and a 'Darken Text' toggle that applies a threshold/levels filter via Canvas to boost dark pixels and lighten the background for improved text legibility. Apply all adjustments in real time on the Canvas preview of the currently selected page. Store adjustments per page so each page can have independent settings.",
+      "id": "REQ-89",
+      "text": "Implement the Video Cutter module. Provide a file upload button that accepts all common video formats (MP4, WebM, MOV, AVI, MKV). After upload, display the video in an HTML5 <video> element for playback preview. Render a timeline scrubber with two draggable handles (start and end trim points) so the user can define the clip region. Show the selected start and end times numerically. Provide a 'Cut & Download' button that uses the MediaRecorder API or ffmpeg.wasm (loaded lazily from CDN) to extract and encode the selected video segment, then triggers a browser download of the trimmed video file. Show a loading/progress indicator during processing.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-latest"
         ],
         "quotes": [
-          "allow to adjest brightness and contrast and also allow to dark text"
+          "video cutter: all video file import and user crop video and cut by button"
         ]
       },
       "acceptanceCriteria": [
-        "Each scanned page has its own independent Brightness slider (range -100 to +100).",
-        "Each scanned page has its own independent Contrast slider (range -100 to +100).",
-        "A 'Darken Text' toggle is present for each page; enabling it applies a Canvas threshold/levels filter that darkens text and lightens the background.",
-        "All adjustments update the Canvas preview in real time when sliders or the toggle are changed.",
-        "Adjustments are stored per page so switching between pages in the list shows each page's own settings.",
-        "Adjustment settings are applied when generating the final PDF output."
+        "File picker accepts MP4, WebM, MOV, AVI, and MKV files",
+        "Uploaded video is shown in a playback preview element",
+        "Timeline scrubber with two draggable trim handles is displayed below the video",
+        "Start and end time values update in real time as handles are dragged",
+        "Clicking 'Cut' processes the video and downloads the trimmed segment",
+        "A progress/loading indicator is shown during processing",
+        "Downloaded file contains only the selected clip"
       ]
     },
     {
-      "id": "REQ-76",
-      "text": "Within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), ensure the scanned pages list panel displays thumbnails of all imported and processed pages in order. Each thumbnail must show its page number and a remove (✕) button to delete that page from the list. The user must be able to import additional pages at any time using the 'Choose from Files' button, appending them to the existing list.",
+      "id": "REQ-90",
+      "text": "Implement the Video Downloader module. Provide a URL input field where users paste a YouTube video link. Provide a 'Download' button that, when clicked, calls the YouTube Data API v3 using the API key AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ to fetch video metadata (title, thumbnail). Display the video thumbnail and title. Since direct binary download of YouTube videos is blocked by CORS, the 'Download' button must open the YouTube watch URL in a new browser tab and display a clear user-facing message: 'The video will open in a new tab — use your browser or a download extension to save it.' Show a loading spinner while fetching metadata and a user-friendly error message if the URL is invalid or the API returns an error.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-latest"
         ],
         "quotes": [
-          "after scanning one by one document image converting in pdf"
+          "video downloder: user copy youtube link for download video by one click download button"
         ]
       },
       "acceptanceCriteria": [
-        "The scanned pages list panel displays a thumbnail and page number for each imported page.",
-        "Each thumbnail has a visible ✕ remove button; clicking it removes that page from the list.",
-        "The user can click 'Choose from Files' again at any time to append more pages to the existing list.",
-        "The list updates immediately when pages are added or removed.",
-        "Page numbers update correctly after removal."
+        "URL input field accepts a pasted YouTube link",
+        "Clicking 'Download' fetches metadata from YouTube Data API v3 using the provided API key",
+        "Video thumbnail and title are displayed after metadata is fetched",
+        "Download button opens the YouTube URL in a new tab",
+        "A clear message informs the user the video will open in a new tab for saving",
+        "Loading spinner is shown while fetching metadata",
+        "A clear error message is displayed if the URL is invalid or the API call fails"
       ]
     },
     {
-      "id": "REQ-77",
-      "text": "Within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), implement a 'Convert to PDF' button that takes all scanned and processed pages (with individual crop and adjustment settings applied) and generates a single PDF document using pdf-lib loaded from CDN (following the same CDN-load pattern used in usePDFOperations.ts). Each page image is embedded as a full-page entry in the output PDF. Show a loading/progress indicator during generation. After generation completes, display a 'Download PDF' button that triggers a browser file download of the resulting PDF.",
+      "id": "REQ-91",
+      "text": "Implement the IP Camera module. Provide an 'IP Cam' button that, when clicked, requests camera access via navigator.mediaDevices.getUserMedia (video: true) and streams the live video feed into an HTML5 <video> element displayed within the panel. Simultaneously, detect the device's local WiFi IP address by fetching from a public STUN-based WebRTC ICE candidate gathering approach (using RTCPeerConnection with a STUN server to extract the local IP from ICE candidates). Display the detected local IP address prominently (e.g., 'Access camera at: http://<local-ip>:PORT') along with a note that any browser on the same WiFi network can use that address to view the stream. Display a clear error message if camera access is denied. Show a 'Stop Camera' button to stop the stream and release the camera.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-latest"
         ],
         "quotes": [
-          "converting in pdf and permition save"
+          "IP Camera: user click Ip Cam button camera start video capturing and showing internet wifi ip address to connect any browser for access camra view"
         ]
       },
       "acceptanceCriteria": [
-        "A 'Convert to PDF' button is visible when at least one scanned page exists in the list.",
-        "Clicking it applies each page's crop and adjustment settings to the Canvas, then embeds the result as a full-page image in the output PDF using pdf-lib.",
-        "A loading/progress indicator is shown during PDF generation.",
-        "After generation, a 'Download PDF' button appears and triggers a browser file download of the resulting PDF.",
-        "The generated PDF contains all non-removed pages in their listed order.",
-        "No errors are thrown if a page's canvas or image data is missing; such pages are skipped with a warning."
+        "Clicking 'IP Cam' button requests camera permission and starts the live video stream in the panel",
+        "Live video feed is displayed in a <video> element",
+        "The device's local WiFi IP address is detected and displayed after the camera starts",
+        "The displayed address is in the format 'http://<local-ip>' so the user can share it",
+        "A note explains that devices on the same network can use this address to view the stream",
+        "A 'Stop Camera' button stops the stream and clears the video feed",
+        "A clear error message is shown if camera permission is denied"
       ]
     },
     {
-      "id": "REQ-78",
-      "text": "Within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), add a filename input field that allows the user to specify a custom filename for the exported PDF before downloading. Pre-fill the input with a default name (e.g., 'scanned-document.pdf'). When the download is triggered, use the specified filename. Validate that the filename is non-empty; if the user omits the '.pdf' extension, append it automatically.",
+      "id": "REQ-92",
+      "text": "Apply a cohesive dark-first visual design system to the entire Multimedia App. Use deep charcoal/slate backgrounds, vibrant teal/cyan accent colors for buttons and active states, crisp white typography, subtle glassmorphism card surfaces (backdrop-filter blur with semi-transparent backgrounds), and smooth micro-interaction animations (button hover states, tab transitions, progress indicators). Enforce this design system consistently across all four module tabs (MP3 Cutter, Video Cutter, Video Downloader, IP Camera). Reuse the glass-card and tool-btn CSS utility class patterns consistent with the existing app's index.css.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-1"
+          "msg-latest"
         ],
         "quotes": [
-          "rename document"
+          "create a new multimedia app"
         ]
       },
       "acceptanceCriteria": [
-        "A filename input field is visible in the export/download area of the PDF Scanner panel.",
-        "The input is pre-filled with 'scanned-document.pdf' by default.",
-        "The downloaded file uses the user-specified filename.",
-        "If the filename is empty, downloading is blocked or the default name is used.",
-        "If the user enters a name without '.pdf', the extension is appended automatically before download."
-      ]
-    },
-    {
-      "id": "REQ-79",
-      "text": "Apply the existing dark-first glassmorphism design system to all updated and new UI elements within the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx). Use glass-card surfaces for the file import panel, scanned pages list, adjustment controls panel, and export controls. Use tool-btn CSS classes for all action buttons ('Choose from Files', 'Apply Crop', 'Reset', 'Convert to PDF', 'Download PDF'). Use teal/cyan accent colors for active states and primary action buttons. Ensure the layout is fully mobile-responsive, stacking the file import area, scanned pages list, and adjustment/export controls vertically on small screens.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-1"
-        ],
-        "quotes": [
-          "in PDF Converter option"
-        ]
-      },
-      "acceptanceCriteria": [
-        "All panels in the PDF Scanner use the glass-card CSS class for surfaces.",
-        "All action buttons use the tool-btn CSS class.",
-        "Teal/cyan accent colors are applied to primary action buttons and active states.",
-        "On mobile screens, all panels stack vertically without horizontal overflow.",
-        "The design is visually consistent with the other PDF Converter tabs and the rest of the application."
+        "All four module tabs use deep charcoal/slate backgrounds",
+        "Teal/cyan accent colors are applied to primary buttons and active tab indicators",
+        "Card surfaces use glassmorphism styling (backdrop blur, semi-transparent background)",
+        "Typography is crisp white on dark backgrounds",
+        "Button hover states and tab transitions have smooth animations",
+        "Design is consistent across all four modules"
       ]
     }
   ],
   "constraints": [
-    "Do not add or restore any camera (getUserMedia) functionality to the PDF Scanner component.",
-    "All processing must remain entirely client-side; no backend changes are required.",
-    "pdf-lib and PDF.js must be loaded from CDN following the same pattern used in usePDFOperations.ts.",
-    "Do not modify any files listed in frontend.immutablePaths.",
-    "Do not change the backend (backend/main.mo)."
+    "All audio and video processing must be client-side only — no backend storage or processing",
+    "The IP Camera feature can only display the local IP address via WebRTC ICE candidate extraction; it cannot act as a true broadcast server from the browser context alone",
+    "Direct YouTube video binary download is blocked by CORS — the downloader must open the URL in a new tab instead",
+    "ffmpeg.wasm or audio encoding libraries must be lazy-loaded from CDN to avoid large initial bundle sizes",
+    "The backend Motoko actor must not be modified — it remains a minimal getAppInfo endpoint",
+    "Do not modify any files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui"
   ],
   "nonGoals": [
-    "Live camera viewfinder or video capture in PDF Scanner.",
-    "Server-side PDF processing or storage.",
-    "AI/ML-based document edge detection (Canvas pixel contrast analysis is sufficient).",
-    "Changes to any module other than PDFScanner.tsx and its direct dependencies.",
-    "APK or mobile app packaging."
+    "Actual server-side video streaming or WebRTC signaling server for IP Camera",
+    "True direct YouTube or Facebook video binary download (blocked by CORS and platform ToS)",
+    "AI-powered audio/video processing or transcription",
+    "Mobile APK packaging",
+    "Modifying the existing conversion tool app (Image Editor, PDF Converter, Image Converter, Passport Photo, BG Remover)",
+    "User authentication or cloud storage of media files"
   ],
   "imageRequirements": {
     "required": [],

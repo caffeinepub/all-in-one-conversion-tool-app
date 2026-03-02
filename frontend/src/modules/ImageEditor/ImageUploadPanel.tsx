@@ -1,152 +1,86 @@
-import { useRef, useState } from 'react';
-import { Upload, Camera, X, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useCamera } from '../../camera/useCamera';
-import { toast } from 'sonner';
+import React, { useCallback, useState } from 'react';
+import { Upload, Image } from 'lucide-react';
 
 interface ImageUploadPanelProps {
-  onImageLoad: (src: string) => void;
-  hasImage: boolean;
+  onImageLoad: (dataUrl: string) => void;
 }
 
-export default function ImageUploadPanel({ onImageLoad, hasImage }: ImageUploadPanelProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [showCamera, setShowCamera] = useState(false);
+export default function ImageUploadPanel({ onImageLoad }: ImageUploadPanelProps) {
   const [isDragging, setIsDragging] = useState(false);
 
-  const { isActive, isSupported, error, isLoading, startCamera, stopCamera, capturePhoto, videoRef, canvasRef } = useCamera({
-    facingMode: 'environment',
-  });
-
-  const handleFile = (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select a valid image file');
-      return;
-    }
+  const handleFile = useCallback((file: File) => {
+    if (!file.type.startsWith('image/')) return;
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = e => {
       if (e.target?.result) {
         onImageLoad(e.target.result as string);
       }
     };
     reader.readAsDataURL(file);
-  };
+  }, [onImageLoad]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) handleFile(file);
+    e.target.value = '';
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
+    const file = e.dataTransfer.files[0];
     if (file) handleFile(file);
+  }, [handleFile]);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
   };
 
-  const handleOpenCamera = async () => {
-    setShowCamera(true);
-    await startCamera();
+  const handleDragLeave = () => {
+    setIsDragging(false);
   };
-
-  const handleCloseCamera = async () => {
-    await stopCamera();
-    setShowCamera(false);
-  };
-
-  const handleCapture = async () => {
-    const photo = await capturePhoto();
-    if (photo) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          onImageLoad(e.target.result as string);
-          handleCloseCamera();
-        }
-      };
-      reader.readAsDataURL(photo);
-    }
-  };
-
-  if (showCamera) {
-    return (
-      <div className="space-y-3 animate-scale-in">
-        <div className="relative rounded-xl overflow-hidden bg-black" style={{ minHeight: 280 }}>
-          <video
-            ref={videoRef}
-            className="w-full h-auto"
-            style={{ minHeight: 280, display: 'block' }}
-            playsInline
-            muted
-            autoPlay
-          />
-          <canvas ref={canvasRef} className="hidden" />
-          {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-              <div className="text-white text-sm">Starting camera...</div>
-            </div>
-          )}
-          {error && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/80 p-4">
-              <div className="text-center text-white">
-                <AlertCircle className="w-8 h-8 mx-auto mb-2 text-destructive" />
-                <p className="text-sm">{error.message}</p>
-              </div>
-            </div>
-          )}
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={handleCapture} disabled={!isActive || isLoading} className="flex-1">
-            <Camera className="w-4 h-4 mr-2" />
-            Capture Photo
-          </Button>
-          <Button variant="outline" onClick={handleCloseCamera}>
-            <X className="w-4 h-4 mr-2" />
-            Cancel
-          </Button>
-        </div>
-        {isSupported === false && (
-          <p className="text-xs text-destructive">Camera not supported in this browser.</p>
-        )}
-      </div>
-    );
-  }
-
-  if (hasImage) return null;
 
   return (
-    <div className="space-y-4 animate-fade-in">
-      <div
-        className={`upload-zone ${isDragging ? 'upload-zone-active' : ''}`}
-        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-        onDragLeave={() => setIsDragging(false)}
+    <div className="flex flex-col items-center justify-center gap-6 py-8">
+      <div className="flex flex-col items-center gap-2 text-center">
+        <div className="p-4 rounded-2xl bg-primary/10">
+          <Image className="w-10 h-10 text-primary" />
+        </div>
+        <h2 className="text-xl font-semibold">Upload an Image</h2>
+        <p className="text-muted-foreground text-sm max-w-xs">
+          Select an image file to start editing. Supports JPG, PNG, WebP, GIF and more.
+        </p>
+      </div>
+
+      <label
+        className={`upload-zone w-full max-w-md flex flex-col items-center justify-center gap-3 p-10 cursor-pointer transition-all ${
+          isDragging ? 'border-primary bg-primary/10' : ''
+        }`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
       >
-        <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
-        <p className="font-medium text-foreground mb-1">Drop an image here</p>
-        <p className="text-sm text-muted-foreground">or click to browse</p>
-        <p className="text-xs text-muted-foreground mt-2">JPG, PNG, WEBP supported · HEIC may vary by browser</p>
-      </div>
+        <input
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileInput}
+        />
+        <Upload className="w-8 h-8 text-muted-foreground/60" />
+        <div className="text-center">
+          <p className="text-sm font-medium text-muted-foreground">
+            Drag & drop your image here
+          </p>
+          <p className="text-xs text-muted-foreground/60 mt-1">
+            or click to browse files
+          </p>
+        </div>
+      </label>
 
-      <div className="flex gap-3">
-        <Button variant="outline" className="flex-1" onClick={() => fileInputRef.current?.click()}>
-          <Upload className="w-4 h-4 mr-2" />
-          From Gallery
-        </Button>
-        <Button variant="outline" className="flex-1" onClick={handleOpenCamera}>
-          <Camera className="w-4 h-4 mr-2" />
-          From Camera
-        </Button>
-      </div>
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif,image/bmp,image/tiff"
-        className="hidden"
-        onChange={handleFileChange}
-      />
+      <p className="text-xs text-muted-foreground/50">
+        Supported formats: JPG, PNG, WebP, GIF, BMP, TIFF
+      </p>
     </div>
   );
 }

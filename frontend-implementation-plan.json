@@ -1,137 +1,216 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "PDF Scanner: Replace Live Camera with Choose from Files + Auto Edge Detection & Full Scan-to-PDF Workflow",
+  "title": "Multimedia Studio - Standalone React Application with MP3 Cutter, Video Cutter, Video Downloader, and IP Camera",
   "requirements": [
     {
-      "id": "REQ-73",
-      "summary": "Replace 'Live Scanner' camera button with 'Choose from Files' button that opens native file picker accepting images (JPG, PNG, JPEG, WEBP) and PDFs, importing them as scanned page entries",
+      "id": "REQ-87",
+      "summary": "Create standalone Multimedia App with tabbed navigation, dark/light mode toggle, and mobile-responsive layout",
       "acceptanceCriteria": [
-        "No 'Live Scanner' or camera button is visible in the PDF Scanner panel.",
-        "A 'Choose from Files' button is prominently displayed; on mobile it reads 'Choose from Files (Google Files / Scanner)'.",
-        "Clicking the button opens a native file picker accepting image/png, image/jpeg, image/webp, and application/pdf MIME types.",
-        "Selected image files are immediately appended to the scanned pages list as individual entries.",
-        "Selected PDF files have each page rendered via PDF.js and appended as individual scanned page entries.",
-        "No navigator.mediaDevices or getUserMedia calls remain in the component.",
-        "All imported pages appear as numbered thumbnails in the scanned pages list panel."
+        "App renders with four clearly labeled tabs: MP3 Cutter, Video Cutter, Video Downloader, IP Camera",
+        "Dark/light mode toggle is present in the header and switches the theme",
+        "Tab switching is smooth with animation",
+        "Layout is fully mobile-responsive on screens 320px and wider",
+        "Active tab is visually highlighted"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/modules/PDFConverter/PDFScanner.tsx",
+          "path": "frontend/src/MultimediaApp.tsx",
+          "operation": "create",
+          "description": "Create the root component for the standalone Multimedia Studio application. Implement a tabbed navigation layout with four tabs (MP3 Cutter, Video Cutter, Video Downloader, IP Camera) using state management to track the active tab. Include a header with dark/light mode toggle using the same theme context pattern from the existing App.tsx. Apply smooth tab-switching animations using CSS transitions. Ensure the layout is fully mobile-responsive with a horizontal scrollable tab bar on smaller screens. Use the glassmorphism design pattern with backdrop-filter blur and semi-transparent card surfaces from frontend/src/index.css utility classes."
+        },
+        {
+          "path": "frontend/src/components/MultimediaHeader.tsx",
+          "operation": "create",
+          "description": "Create a header component for the Multimedia App featuring the app title 'Multimedia Studio', a dark/light theme toggle button (reusing the theme logic from frontend/src/components/Header.tsx), and responsive layout. Apply the deep charcoal/slate background with glassmorphism styling and teal/cyan accent colors for the theme toggle."
+        },
+        {
+          "path": "frontend/src/components/MultimediaTabNavigation.tsx",
+          "operation": "create",
+          "description": "Create a tab navigation component that renders four tabs: 'MP3 Cutter', 'Video Cutter', 'Video Downloader', and 'IP Camera'. Implement active tab highlighting with teal/cyan accent color. Add smooth transition animations on tab switching. Make the tab bar horizontally scrollable on mobile screens (320px+). Each tab should have an icon (use lucide-react icons) and label."
+        },
+        {
+          "path": "frontend/src/main.tsx",
           "operation": "modify",
-          "description": "Remove all camera-related code (camera/useCamera imports, video elements, camera state, getUserMedia calls). Replace the 'Live Scanner' button with a 'Choose from Files' button (mobile label: 'Choose from Files (Google Files / Scanner)'). Implement a file input element accepting 'image/png,image/jpeg,image/jpg,image/webp,application/pdf'. On file selection, process image files as scanned page entries and use PDF.js (loaded from CDN following the pattern in frontend/src/modules/PDFConverter/usePDFOperations.ts) to render each page of selected PDFs as individual scanned page entries. Ensure all imported pages are added to the scannedPages state array with unique IDs, original image data URLs, and metadata."
+          "description": "Wire the new MultimediaApp component into the application routing. Import and conditionally render MultimediaApp alongside the existing App component based on a route or query parameter (e.g., render MultimediaApp when pathname is '/multimedia' or render a navigation link to switch between apps)."
         }
       ]
     },
     {
-      "id": "REQ-74",
-      "summary": "Implement automatic document edge detection and perspective crop for each imported image using Canvas-based pixel contrast analysis, with a Manual Crop fallback mode featuring draggable corner handles",
+      "id": "REQ-88",
+      "summary": "Implement MP3 Cutter module with waveform visualization, draggable trim handles, and client-side audio cutting using Web Audio API",
       "acceptanceCriteria": [
-        "After a file is imported, the component attempts automatic document edge detection on the Canvas.",
-        "A perspective-corrected crop is applied automatically to each imported image and shown as the default preview.",
-        "A toggle or radio control allows switching between Auto Crop and Manual Crop modes.",
-        "In Manual Crop mode, an interactive overlay with draggable corner handles is shown on the image.",
-        "An 'Apply Crop' button confirms the crop and updates the scanned page entry.",
-        "A 'Reset' button reverts the page to the uncropped original image.",
-        "If auto-detection fails or finds no clear edges, the full image is used as the default without crashing."
+        "File picker accepts .mp3, .aac, .wav, .mp4 files",
+        "Waveform is rendered on a Canvas after file is loaded",
+        "Two draggable handles allow selecting start and end positions on the waveform",
+        "Selected start time and end time are displayed numerically in seconds or MM:SS format",
+        "Clicking 'Cut & Download' triggers a browser download of the trimmed audio as an MP3 file",
+        "The downloaded file contains only the audio between the selected start and end markers"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/modules/PDFConverter/PDFScanner.tsx",
+          "path": "frontend/src/modules/MP3Cutter.tsx",
+          "operation": "create",
+          "description": "Create the main MP3 Cutter module component. Provide a file upload button accepting .mp3, .aac, .wav, .mp4 files. After upload, use the Web Audio API to decode the audio file into an AudioBuffer. Render a waveform visualization on a Canvas element by extracting PCM data from the AudioBuffer and drawing amplitude peaks. Display the total audio duration. Implement two draggable range handles (start and end markers) overlaid on the waveform canvas to define the trim region. Show the selected start and end times in MM:SS format. Provide a 'Cut & Download' button that extracts the selected audio segment by slicing the AudioBuffer, encodes it to MP3 using lamejs (loaded lazily from CDN: https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.min.js), and triggers a browser download. Include a loading spinner during encoding. Apply the glassmorphism card styling and teal/cyan accent buttons."
+        },
+        {
+          "path": "frontend/src/modules/MP3Cutter/useAudioCutter.ts",
+          "operation": "create",
+          "description": "Create a custom hook managing MP3 cutter state and logic. Handle file loading and decoding via Web Audio API. Manage waveform data extraction (downsample PCM data for canvas rendering). Track start/end trim positions and convert them to time values. Implement audio slicing logic by creating a new AudioBuffer from the selected range. Lazy-load lamejs encoder from CDN and encode the AudioBuffer slice to MP3 format. Expose functions for file upload, trim position updates, and audio export."
+        },
+        {
+          "path": "frontend/src/modules/MP3Cutter/WaveformCanvas.tsx",
+          "operation": "create",
+          "description": "Create a reusable waveform canvas component that renders audio amplitude data as a visual waveform. Accept PCM data, canvas dimensions, and current trim positions (start/end) as props. Draw the waveform peaks with a teal/cyan gradient. Render two draggable trim handle overlays (vertical lines with grab handles) that users can drag to adjust start and end positions. Implement mouse and touch event handlers for dragging. Highlight the selected region between the handles with a semi-transparent teal overlay."
+        },
+        {
+          "path": "frontend/src/MultimediaApp.tsx",
           "operation": "modify",
-          "description": "Implement automatic edge detection logic using Canvas-based pixel contrast analysis to detect document quadrilaterals. After each image import, run edge detection and apply a perspective transform crop automatically. Store both the original uncropped image and the auto-cropped result in each scanned page entry. Add crop mode state (auto/manual) with a toggle control in the UI. Implement a Manual Crop mode with an SVG or div overlay containing four draggable corner handles positioned over the currently selected page preview. Provide 'Apply Crop' and 'Reset' buttons; Apply Crop updates the page's cropped image, Reset restores the original uncropped image. If edge detection finds no clear quadrilateral, default to showing the full uncropped image without errors."
+          "description": "Wire the MP3Cutter module into the tabbed navigation. Import frontend/src/modules/MP3Cutter.tsx and render it when the 'MP3 Cutter' tab is active. Pass any necessary props or callbacks."
         }
       ]
     },
     {
-      "id": "REQ-75",
-      "summary": "Add per-page image adjustment controls (Brightness slider -100 to +100, Contrast slider -100 to +100, 'Darken Text' toggle) with real-time Canvas preview updates",
+      "id": "REQ-89",
+      "summary": "Implement Video Cutter module with video preview, timeline scrubber with draggable trim handles, and client-side video cutting using ffmpeg.wasm",
       "acceptanceCriteria": [
-        "Each scanned page has its own independent Brightness slider (range -100 to +100).",
-        "Each scanned page has its own independent Contrast slider (range -100 to +100).",
-        "A 'Darken Text' toggle is present for each page; enabling it applies a Canvas threshold/levels filter that darkens text and lightens the background.",
-        "All adjustments update the Canvas preview in real time when sliders or the toggle are changed.",
-        "Adjustments are stored per page so switching between pages in the list shows each page's own settings.",
-        "Adjustment settings are applied when generating the final PDF output."
+        "File picker accepts MP4, WebM, MOV, AVI, and MKV files",
+        "Uploaded video is shown in a playback preview element",
+        "Timeline scrubber with two draggable trim handles is displayed below the video",
+        "Start and end time values update in real time as handles are dragged",
+        "Clicking 'Cut' processes the video and downloads the trimmed segment",
+        "A progress/loading indicator is shown during processing",
+        "Downloaded file contains only the selected clip"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/modules/PDFConverter/PDFScanner.tsx",
+          "path": "frontend/src/modules/VideoCutter.tsx",
+          "operation": "create",
+          "description": "Create the main Video Cutter module component. Provide a file upload button accepting MP4, WebM, MOV, AVI, MKV files. After upload, display the video in an HTML5 <video> element for playback preview. Render a timeline scrubber UI below the video with two draggable trim handles (start and end points) that users can drag along the timeline to define the clip region. Show the selected start and end times numerically in MM:SS format, updating in real time as handles are dragged. Provide a 'Cut & Download' button that uses ffmpeg.wasm (lazy-loaded from CDN: https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js and https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/index.js) to trim the video and download the result. Display a loading spinner with progress percentage during processing. Apply glassmorphism styling and teal/cyan accent buttons."
+        },
+        {
+          "path": "frontend/src/modules/VideoCutter/useVideoCutter.ts",
+          "operation": "create",
+          "description": "Create a custom hook managing video cutter state and logic. Handle video file loading and metadata extraction (duration). Track start/end trim positions in seconds. Lazy-load ffmpeg.wasm from CDN and initialize the FFmpeg instance. Implement video trimming by loading the video file into ffmpeg.wasm, running the trim command with start/end timestamps, and extracting the output video blob. Expose functions for file upload, trim position updates, progress tracking, and video export."
+        },
+        {
+          "path": "frontend/src/modules/VideoCutter/VideoTimeline.tsx",
+          "operation": "create",
+          "description": "Create a reusable video timeline scrubber component. Accept video duration, current trim positions (start/end), and update callbacks as props. Render a horizontal timeline bar with tick marks representing time intervals. Overlay two draggable trim handles (vertical bars with grab icons) that users can drag to adjust start and end positions. Implement mouse and touch event handlers for dragging. Highlight the selected clip region between the handles with a teal/cyan semi-transparent overlay. Display time labels at the handle positions."
+        },
+        {
+          "path": "frontend/src/MultimediaApp.tsx",
           "operation": "modify",
-          "description": "Add per-page adjustment state fields (brightness: number, contrast: number, darkenText: boolean) to each scanned page entry. Render a Brightness slider (range -100 to +100, default 0), a Contrast slider (range -100 to +100, default 0), and a 'Darken Text' checkbox for the currently selected page. When any adjustment control changes, update the corresponding page's state and re-render the Canvas preview in real time by applying brightness/contrast transformations and a threshold filter (if darkenText is enabled) using Canvas ImageData pixel manipulation. Ensure each page retains its independent adjustment settings when switching between pages in the scanned pages list."
+          "description": "Wire the VideoCutter module into the tabbed navigation. Import frontend/src/modules/VideoCutter.tsx and render it when the 'Video Cutter' tab is active."
         }
       ]
     },
     {
-      "id": "REQ-76",
-      "summary": "Display scanned pages list panel with numbered thumbnails and remove (✕) buttons, allowing users to append additional pages at any time",
+      "id": "REQ-90",
+      "summary": "Implement Video Downloader module that fetches YouTube video metadata via YouTube Data API v3 and opens the video in a new tab with user guidance",
       "acceptanceCriteria": [
-        "The scanned pages list panel displays a thumbnail and page number for each imported page.",
-        "Each thumbnail has a visible ✕ remove button; clicking it removes that page from the list.",
-        "The user can click 'Choose from Files' again at any time to append more pages to the existing list.",
-        "The list updates immediately when pages are added or removed.",
-        "Page numbers update correctly after removal."
+        "URL input field accepts a pasted YouTube link",
+        "Clicking 'Download' fetches metadata from YouTube Data API v3 using the provided API key",
+        "Video thumbnail and title are displayed after metadata is fetched",
+        "Download button opens the YouTube URL in a new tab",
+        "A clear message informs the user the video will open in a new tab for saving",
+        "Loading spinner is shown while fetching metadata",
+        "A clear error message is displayed if the URL is invalid or the API call fails"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/modules/PDFConverter/PDFScanner.tsx",
+          "path": "frontend/src/modules/VideoDownloader.tsx",
           "operation": "modify",
-          "description": "Render a scanned pages list panel (glass-card surface) that maps over the scannedPages array. For each page, display a thumbnail canvas or image preview showing the cropped/adjusted result, a page number label (1-indexed), and a remove button (✕) that filters out that page from the scannedPages array on click. Ensure the 'Choose from Files' button can be clicked multiple times to append additional pages to the existing scannedPages array. Update page numbers dynamically whenever pages are added or removed."
+          "description": "Modify the existing VideoDownloader component (frontend/src/modules/VideoDownloader.tsx) to implement the full requirement. Update the component to use the YouTube Data API v3 with the provided API key 'AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ'. After fetching metadata, display the video thumbnail and title in a card with glassmorphism styling. Replace or enhance the download button to open the YouTube watch URL in a new browser tab using window.open(url, '_blank'). Display a clear, user-facing message: 'The video will open in a new tab — use your browser or a download extension to save it.' Show a loading spinner (lucide-react Loader2 icon with spin animation) while fetching metadata. Display user-friendly error messages if the URL is invalid or the API call fails (e.g., 'Invalid YouTube URL' or 'Failed to fetch video info'). Apply teal/cyan accent styling to the download button."
+        },
+        {
+          "path": "frontend/src/MultimediaApp.tsx",
+          "operation": "modify",
+          "description": "Wire the VideoDownloader module into the tabbed navigation. Import frontend/src/modules/VideoDownloader.tsx and render it when the 'Video Downloader' tab is active."
         }
       ]
     },
     {
-      "id": "REQ-77",
-      "summary": "Implement 'Convert to PDF' button that generates a single PDF from all scanned pages using pdf-lib (loaded from CDN), embedding each page with applied crop and adjustments, and provides a 'Download PDF' button",
+      "id": "REQ-91",
+      "summary": "Implement IP Camera module that streams live video from the device camera and displays the local WiFi IP address via WebRTC ICE candidate gathering",
       "acceptanceCriteria": [
-        "A 'Convert to PDF' button is visible when at least one scanned page exists in the list.",
-        "Clicking it applies each page's crop and adjustment settings to the Canvas, then embeds the result as a full-page image in the output PDF using pdf-lib.",
-        "A loading/progress indicator is shown during PDF generation.",
-        "After generation, a 'Download PDF' button appears and triggers a browser file download of the resulting PDF.",
-        "The generated PDF contains all non-removed pages in their listed order.",
-        "No errors are thrown if a page's canvas or image data is missing; such pages are skipped with a warning."
+        "Clicking 'IP Cam' button requests camera permission and starts the live video stream in the panel",
+        "Live video feed is displayed in a <video> element",
+        "The device's local WiFi IP address is detected and displayed after the camera starts",
+        "The displayed address is in the format 'http://<local-ip>' so the user can share it",
+        "A note explains that devices on the same network can use this address to view the stream",
+        "A 'Stop Camera' button stops the stream and clears the video feed",
+        "A clear error message is shown if camera permission is denied"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/modules/PDFConverter/PDFScanner.tsx",
+          "path": "frontend/src/modules/IPCamera.tsx",
+          "operation": "create",
+          "description": "Create the IP Camera module component. Use the camera component's useCamera hook (imported from 'camera/useCamera') to manage camera access and streaming. Verify the component's usage instructions before implementing. Provide an 'IP Cam' button that calls startCamera() to request camera access and start the live video stream. Display the live video feed in a <video> element using the videoRef from useCamera. Ensure the video preview has explicit, non-zero dimensions (e.g., width: 100%, aspect-ratio: 16/9, or min-height: 300px) so it never collapses. After the camera starts (isActive becomes true), detect the device's local WiFi IP address using WebRTC ICE candidate gathering: create an RTCPeerConnection with a public STUN server (stun:stun.l.google.com:19302), create a dummy data channel, set a local description, and extract the local IP from the ICE candidates. Display the detected IP address in the format 'Access camera at: http://<local-ip>'. Include a note: 'Devices on the same WiFi network can use this address to view the stream.' Provide a 'Stop Camera' button that calls stopCamera() to stop the stream and release the camera. Display a clear error message if camera permission is denied (check the error prop from useCamera). Do not make camera buttons clickable until the camera is fully initialized (disable buttons while isLoading). Apply glassmorphism card styling and teal/cyan accent buttons. On desktop, ensure camera cannot be switched (only 'environment' facing mode is working). Always show the camera preview when the user opens the camera. Properly display camera error messages in the app."
+        },
+        {
+          "path": "frontend/src/modules/IPCamera/useIPDetection.ts",
+          "operation": "create",
+          "description": "Create a custom hook for detecting the local WiFi IP address via WebRTC ICE candidate gathering. Implement the logic: create an RTCPeerConnection with a STUN server configuration (stun:stun.l.google.com:19302), create a dummy data channel to trigger ICE gathering, set a local SDP offer, listen for ICE candidates, and parse the candidate strings to extract the local IP address (look for candidates with type 'host'). Return the detected IP address or null if detection fails. Handle cleanup by closing the RTCPeerConnection after detection."
+        },
+        {
+          "path": "frontend/src/MultimediaApp.tsx",
           "operation": "modify",
-          "description": "Add a 'Convert to PDF' button that is enabled when scannedPages.length > 0. On click, show a loading indicator and iterate over all scanned pages. For each page, render its cropped image to a Canvas, apply the page's brightness, contrast, and darkenText adjustments using Canvas pixel manipulation, then convert the Canvas to a PNG data URL. Load pdf-lib from CDN using the same dynamic import pattern as frontend/src/modules/PDFConverter/usePDFOperations.ts. Create a new PDFDocument, and for each processed page data URL, embed the PNG image and add a full-page entry to the PDF. After all pages are embedded, serialize the PDF to bytes and store the result. Hide the loading indicator and display a 'Download PDF' button. On 'Download PDF' click, trigger a browser download of the PDF bytes with the user-specified filename. If a page's data is missing or errors occur during processing, log a warning and skip that page without throwing."
+          "description": "Wire the IPCamera module into the tabbed navigation. Import frontend/src/modules/IPCamera.tsx and render it when the 'IP Camera' tab is active."
         }
       ]
     },
     {
-      "id": "REQ-78",
-      "summary": "Add a filename input field pre-filled with 'scanned-document.pdf' that validates and automatically appends '.pdf' extension if omitted",
+      "id": "REQ-92",
+      "summary": "Apply cohesive dark-first visual design system with deep charcoal/slate backgrounds, teal/cyan accents, glassmorphism, and smooth animations across all four modules",
       "acceptanceCriteria": [
-        "A filename input field is visible in the export/download area of the PDF Scanner panel.",
-        "The input is pre-filled with 'scanned-document.pdf' by default.",
-        "The downloaded file uses the user-specified filename.",
-        "If the filename is empty, downloading is blocked or the default name is used.",
-        "If the user enters a name without '.pdf', the extension is appended automatically before download."
+        "All four module tabs use deep charcoal/slate backgrounds",
+        "Teal/cyan accent colors are applied to primary buttons and active tab indicators",
+        "Card surfaces use glassmorphism styling (backdrop blur, semi-transparent background)",
+        "Typography is crisp white on dark backgrounds",
+        "Button hover states and tab transitions have smooth animations",
+        "Design is consistent across all four modules"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/modules/PDFConverter/PDFScanner.tsx",
+          "path": "frontend/src/index.css",
           "operation": "modify",
-          "description": "Add a filename state field initialized to 'scanned-document.pdf'. Render a text input field in the export controls area (glass-card surface) bound to the filename state. When the 'Download PDF' button is clicked, validate that the filename is non-empty (if empty, use the default 'scanned-document.pdf'). If the filename does not end with '.pdf', append '.pdf' automatically. Use the validated filename when triggering the browser download of the generated PDF."
-        }
-      ]
-    },
-    {
-      "id": "REQ-79",
-      "summary": "Apply dark-first glassmorphism design system to all PDF Scanner UI elements using glass-card surfaces, tool-btn classes, teal/cyan accents, and ensure mobile-responsive vertical stacking",
-      "acceptanceCriteria": [
-        "All panels in the PDF Scanner use the glass-card CSS class for surfaces.",
-        "All action buttons use the tool-btn CSS class.",
-        "Teal/cyan accent colors are applied to primary action buttons and active states.",
-        "On mobile screens, all panels stack vertically without horizontal overflow.",
-        "The design is visually consistent with the other PDF Converter tabs and the rest of the application."
-      ],
-      "file_operations": [
+          "description": "Extend the existing global stylesheet (frontend/src/index.css) to include additional utility classes for the Multimedia App's design system. Ensure deep charcoal/slate background colors are available (use existing CSS custom properties like --background or define new ones if needed for darker shades). Define teal/cyan accent color utilities (e.g., .accent-teal with background: oklch(0.65 0.2 195)) for buttons and active states. Ensure glassmorphism utility classes like .glass-card are available (backdrop-filter: blur(12px), background: rgba(255,255,255,0.1), border: 1px solid rgba(255,255,255,0.2)). Add smooth transition utilities for hover states and animations (e.g., transition: all 0.3s ease). Ensure crisp white typography is the default on dark backgrounds (color: oklch(1 0 0))."
+        },
         {
-          "path": "frontend/src/modules/PDFConverter/PDFScanner.tsx",
+          "path": "frontend/src/MultimediaApp.tsx",
           "operation": "modify",
-          "description": "Apply the glass-card CSS class to all container panels (file import area, scanned pages list, adjustment controls, export controls). Apply the tool-btn CSS class to all action buttons ('Choose from Files', 'Apply Crop', 'Reset', 'Convert to PDF', 'Download PDF'). Use teal/cyan accent classes (from frontend/src/index.css) for primary action buttons and active/selected states. Structure the layout to stack vertically on small screens using responsive Tailwind utilities (e.g., flex flex-col gap-4 on mobile, optionally grid or flex-row on larger screens). Ensure no horizontal overflow occurs on mobile viewports."
+          "description": "Apply the dark-first design system to the MultimediaApp root component. Set a deep charcoal/slate background color on the main container (e.g., bg-slate-900 or a custom OKLCH dark background). Ensure all child components (header, tabs, module panels) inherit the theme. Apply glassmorphism styling to the main content area container using the .glass-card utility class. Ensure smooth transitions for tab switching (e.g., fade-in/fade-out or slide animations using CSS transitions or framer-motion if already available)."
+        },
+        {
+          "path": "frontend/src/components/MultimediaHeader.tsx",
+          "operation": "modify",
+          "description": "Apply the dark-first design to the MultimediaHeader component. Use deep charcoal/slate background with glassmorphism (backdrop-filter blur and semi-transparent background). Apply teal/cyan accent color to the theme toggle button. Ensure crisp white typography for the app title. Add smooth hover animations to the theme toggle button (scale or glow effect on hover)."
+        },
+        {
+          "path": "frontend/src/components/MultimediaTabNavigation.tsx",
+          "operation": "modify",
+          "description": "Apply the design system to the MultimediaTabNavigation component. Use deep charcoal/slate background for the tab bar. Apply teal/cyan accent color to the active tab indicator (border-bottom or background highlight). Add smooth transition animations when switching tabs (e.g., sliding underline or fade-in effect). Ensure tab labels use crisp white typography. Add hover effects to inactive tabs (subtle brightness increase or scale on hover)."
+        },
+        {
+          "path": "frontend/src/modules/MP3Cutter.tsx",
+          "operation": "modify",
+          "description": "Apply the design system to the MP3Cutter module. Use glassmorphism card styling for the main content container. Apply teal/cyan accent color to primary action buttons ('Upload', 'Cut & Download'). Ensure all typography is crisp white. Add smooth hover animations to buttons (scale or glow effect). Use deep charcoal/slate background for the waveform canvas container."
+        },
+        {
+          "path": "frontend/src/modules/VideoCutter.tsx",
+          "operation": "modify",
+          "description": "Apply the design system to the VideoCutter module. Use glassmorphism card styling for the main content container. Apply teal/cyan accent color to primary action buttons ('Upload', 'Cut & Download'). Ensure all typography is crisp white. Add smooth hover animations to buttons. Use deep charcoal/slate background for the video player and timeline container."
+        },
+        {
+          "path": "frontend/src/modules/VideoDownloader.tsx",
+          "operation": "modify",
+          "description": "Apply the design system to the VideoDownloader module. Use glassmorphism card styling for the video info display card. Apply teal/cyan accent color to the 'Download' button. Ensure all typography (title, instructions, error messages) is crisp white. Add smooth hover animations to buttons."
+        },
+        {
+          "path": "frontend/src/modules/IPCamera.tsx",
+          "operation": "modify",
+          "description": "Apply the design system to the IPCamera module. Use glassmorphism card styling for the main content container. Apply teal/cyan accent color to primary action buttons ('IP Cam', 'Stop Camera'). Ensure all typography (IP address display, instructions, error messages) is crisp white. Add smooth hover animations to buttons. Use deep charcoal/slate background for the video preview container."
         }
       ]
     }

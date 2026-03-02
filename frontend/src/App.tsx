@@ -9,6 +9,7 @@ import { ImageConverter } from './modules/ImageConverter';
 import { PassportPhotoConverter } from './modules/PassportPhotoConverter';
 import BackgroundRemover from './modules/BackgroundRemover';
 import Footer from './components/Footer';
+import MultimediaApp from './MultimediaApp';
 
 export type TabId =
   | 'image-editor'
@@ -19,10 +20,15 @@ export type TabId =
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState<TabId>('image-editor');
+  const [showMultimedia, setShowMultimedia] = useState(false);
+
+  if (showMultimedia) {
+    return <MultimediaApp onBack={() => setShowMultimedia(false)} />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Header />
+      <Header onOpenMultimedia={() => setShowMultimedia(true)} />
       <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
       <main className="flex-1 container mx-auto px-4 py-6 max-w-7xl">
         <div className="animate-fade-in">

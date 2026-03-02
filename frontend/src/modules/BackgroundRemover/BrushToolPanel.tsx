@@ -15,12 +15,6 @@ interface BrushToolPanelProps {
   onEraseSelected: () => void;
 }
 
-const BRUSH_SIZES = [
-  { label: 'S', value: 10 },
-  { label: 'M', value: 25 },
-  { label: 'L', value: 50 },
-];
-
 export default function BrushToolPanel({
   brushActive,
   brushSize,
@@ -33,10 +27,12 @@ export default function BrushToolPanel({
   onClear,
   onEraseSelected,
 }: BrushToolPanelProps) {
+  // Preview circle diameter capped at 48px for display
+  const previewDiameter = Math.min(brushSize, 48);
+
   return (
     <div
       className="flex flex-col gap-3"
-      // Prevent any touch events from bubbling up and causing scroll/layout shifts
       onTouchStart={(e) => e.stopPropagation()}
       onTouchMove={(e) => e.stopPropagation()}
       onTouchEnd={(e) => e.stopPropagation()}
@@ -81,21 +77,39 @@ export default function BrushToolPanel({
             </div>
           </div>
 
-          {/* Brush size */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground w-16 shrink-0">Size:</span>
-            <div className="flex gap-1">
-              {BRUSH_SIZES.map((s) => (
-                <Button
-                  key={s.label}
-                  variant={brushSize === s.value ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => onBrushSizeChange(s.value)}
-                  className="w-9 text-xs"
-                >
-                  {s.label}
-                </Button>
-              ))}
+          {/* Brush thickness slider */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Thickness:</span>
+              <span className="text-xs font-semibold text-foreground tabular-nums">{brushSize}px</span>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* Brush preview circle */}
+              <div
+                className="flex items-center justify-center shrink-0"
+                style={{ width: 52, height: 52 }}
+              >
+                <div
+                  style={{
+                    width: previewDiameter,
+                    height: previewDiameter,
+                    borderRadius: '50%',
+                    background: brushMode === 'paint' ? 'rgba(255,60,60,0.55)' : 'rgba(100,100,100,0.35)',
+                    border: '1.5px solid rgba(255,60,60,0.8)',
+                    transition: 'width 0.1s, height 0.1s',
+                  }}
+                />
+              </div>
+              <input
+                type="range"
+                min={4}
+                max={100}
+                step={1}
+                value={brushSize}
+                onChange={(e) => onBrushSizeChange(Number(e.target.value))}
+                className="flex-1 h-2 rounded-full accent-primary cursor-pointer"
+                style={{ accentColor: 'var(--primary)' }}
+              />
             </div>
           </div>
 
@@ -105,7 +119,12 @@ export default function BrushToolPanel({
               <Undo2 className="w-3 h-3 mr-1" />
               Undo
             </Button>
-            <Button variant="outline" size="sm" onClick={onClear} className="text-xs text-destructive hover:text-destructive">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onClear}
+              className="text-xs text-destructive hover:text-destructive"
+            >
               <Trash2 className="w-3 h-3 mr-1" />
               Clear
             </Button>

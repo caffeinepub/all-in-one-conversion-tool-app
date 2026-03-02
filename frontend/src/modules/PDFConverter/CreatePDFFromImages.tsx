@@ -1,258 +1,222 @@
-import { useRef, useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { Upload, X, Download, Loader2, CheckCircle, Image, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Upload, Camera, X, Sparkles, FileDown, Loader2, AlertCircle, Archive } from 'lucide-react';
-import { toast } from 'sonner';
-import { downloadAsZip } from '@/lib/jszip';
 
-interface ImageItem {
+interface ImageEntry {
   id: string;
+  file: File;
+  preview: string;
   name: string;
-  dataUrl: string;
-  enhanced: boolean;
 }
 
-interface CreatePDFFromImagesProps {
-  isProcessing: boolean;
-  lastCreatedPDF: Uint8Array | null;
-  onCreatePDF: (images: File[], options?: { enhance?: boolean; compress?: boolean }) => void;
+declare const PDFLib: any;
+
+async function loadPDFLib(): Promise<void> {
+  if (typeof PDFLib !== 'undefined') return;
+  await new Promise<void>((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
+    script.onload = () => resolve();
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
 }
 
-export default function CreatePDFFromImages({ isProcessing, lastCreatedPDF, onCreatePDF }: CreatePDFFromImagesProps) {
-  const [images, setImages] = useState<ImageItem[]>([]);
-  const [compress, setCompress] = useState(false);
+function generateId(): string {
+  return Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+}
+
+export default function CreatePDFFromImages() {
+  const [images, setImages] = useState<ImageEntry[]>([]);
+  const [isCreating, setIsCreating] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [enhance, setEnhance] = useState(false);
-  const [showCamera, setShowCamera] = useState(false);
-  const [cameraActive, setCameraActive] = useState(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
-  const [isZipping, setIsZipping] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const [compress, setCompress] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
-  const addImageFromDataUrl = (dataUrl: string, name: string) => {
-    setImages(prev => [...prev, {
-      id: Date.now().toString() + Math.random().toString(36).slice(2),
-      name,
-      dataUrl,
-      enhanced: false,
-    }]);
+  const addImages = useCallback((files: File[]) => {
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+    const newEntries: ImageEntry[] = imageFiles.map(file => ({
+      id: generateId(),
+      file,
+      preview: URL.createObjectURL(file),
+      name: file.name,
+    }));
+    setImages(prev => [...prev, ...newEntries]);
+  }, []);
+
+  const removeImage = (id: string) => {
+    setImages(prev => {
+      const entry = prev.find(e => e.id === id);
+      if (entry) URL.revokeObjectURL(entry.preview);
+      return prev.filter(e => e.id !== id);
+    });
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        if (ev.target?.result) addImageFromDataUrl(ev.target.result as string, file.name);
-      };
-      reader.readAsDataURL(file);
-    });
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) addImages(Array.from(e.target.files));
     e.target.value = '';
   };
 
-  const startCamera = async () => {
-    setCameraError(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-      setCameraActive(true);
-    } catch {
-      setCameraError('Camera access denied or not available.');
-    }
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    addImages(files);
   };
 
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
-      streamRef.current = null;
-    }
-    setCameraActive(false);
-  };
-
-  const handleOpenCamera = async () => {
-    setShowCamera(true);
-    await startCamera();
-  };
-
-  const handleCapture = () => {
-    const video = videoRef.current;
-    if (!video || !cameraActive) return;
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.drawImage(video, 0, 0);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-    addImageFromDataUrl(dataUrl, `camera-${Date.now()}.jpg`);
-    stopCamera();
-    setShowCamera(false);
-  };
-
-  const enhanceImage = (id: string) => {
-    const img = images.find(i => i.id === id);
-    if (!img) return;
-
-    const image = new window.Image();
-    image.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = image.width;
-      canvas.height = image.height;
-      const ctx = canvas.getContext('2d')!;
-      ctx.filter = 'brightness(1.15) contrast(1.25) saturate(1.1)';
-      ctx.drawImage(image, 0, 0);
-      const enhanced = canvas.toDataURL('image/jpeg', 0.95);
-      setImages(prev => prev.map(i => i.id === id ? { ...i, dataUrl: enhanced, enhanced: true } : i));
-      toast.success('Image enhanced!');
-    };
-    image.src = img.dataUrl;
-  };
-
-  const removeImage = (id: string) => {
-    setImages(prev => prev.filter(i => i.id !== id));
-  };
-
-  // Convert dataUrl images to File objects for the hook
-  const handleCreatePDF = async () => {
+  const createPDF = async () => {
     if (images.length === 0) return;
-    const files = await Promise.all(images.map(async (img) => {
-      const res = await fetch(img.dataUrl);
-      const blob = await res.blob();
-      return new File([blob], img.name, { type: blob.type || 'image/jpeg' });
-    }));
-    onCreatePDF(files, { enhance, compress });
-  };
-
-  const handleDownloadZip = async () => {
-    if (!lastCreatedPDF) {
-      toast.error('Create a PDF first');
-      return;
-    }
-    setIsZipping(true);
+    setIsCreating(true);
+    setSuccess(false);
     try {
-      const blob = new Blob([lastCreatedPDF.buffer as ArrayBuffer], { type: 'application/pdf' });
-      await downloadAsZip([{ filename: 'created-document.pdf', data: blob }], 'created-document.zip');
-      toast.success('PDF downloaded as ZIP!');
-    } catch {
-      toast.error('Failed to create ZIP');
+      await loadPDFLib();
+      const { PDFDocument } = PDFLib;
+      const pdfDoc = await PDFDocument.create();
+
+      for (const entry of images) {
+        const arrayBuffer = await entry.file.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        let image;
+        const mimeType = entry.file.type;
+        if (mimeType === 'image/png') {
+          image = await pdfDoc.embedPng(uint8Array);
+        } else {
+          // For other formats, try JPEG embedding
+          image = await pdfDoc.embedJpg(uint8Array);
+        }
+        const page = pdfDoc.addPage([image.width, image.height]);
+        page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
+      }
+
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'images-to-pdf.pdf';
+      a.click();
+      URL.revokeObjectURL(url);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err) {
+      console.error('PDF creation failed:', err);
     } finally {
-      setIsZipping(false);
+      setIsCreating(false);
     }
   };
 
   return (
-    <div className="space-y-4">
-      <p className="section-title">Create PDF from Images</p>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-2 mb-2">
+        <Image className="w-5 h-5 text-primary" />
+        <h2 className="text-lg font-semibold">Create PDF from Images</h2>
+      </div>
 
-      {showCamera ? (
-        <div className="space-y-3 animate-scale-in">
-          <div className="relative rounded-xl overflow-hidden bg-black" style={{ minHeight: 200 }}>
-            <video ref={videoRef} className="w-full h-auto" style={{ minHeight: 200 }} playsInline muted autoPlay />
-            {!cameraActive && !cameraError && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-                <Loader2 className="w-6 h-6 text-white animate-spin" />
-              </div>
-            )}
-            {cameraError && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/80 p-4">
-                <div className="text-center text-white">
-                  <AlertCircle className="w-6 h-6 mx-auto mb-1 text-destructive" />
-                  <p className="text-xs">{cameraError}</p>
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <Button size="sm" onClick={handleCapture} disabled={!cameraActive} className="flex-1">
-              <Camera className="w-3.5 h-3.5 mr-2" />
-              Capture
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => { stopCamera(); setShowCamera(false); }}>
-              <X className="w-3.5 h-3.5" />
-            </Button>
-          </div>
+      {/* Upload zone */}
+      <label
+        className={`upload-zone flex flex-col items-center justify-center gap-3 p-8 cursor-pointer transition-all ${
+          isDragging ? 'border-primary bg-primary/10' : ''
+        }`}
+        onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={handleDrop}
+      >
+        <input
+          type="file"
+          multiple
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileInput}
+        />
+        <Upload className="w-10 h-10 text-muted-foreground/60" />
+        <div className="text-center">
+          <p className="text-sm font-medium text-muted-foreground">
+            Drag & drop images here, or click to browse
+          </p>
+          <p className="text-xs text-muted-foreground/60 mt-1">
+            Supports JPG, PNG, WebP, GIF
+          </p>
         </div>
-      ) : (
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="flex-1 gap-2" onClick={() => fileInputRef.current?.click()}>
-            <Upload className="w-3.5 h-3.5" />
-            Add Images
-          </Button>
-          <Button variant="outline" size="sm" className="flex-1 gap-2" onClick={handleOpenCamera}>
-            <Camera className="w-3.5 h-3.5" />
-            Camera
-          </Button>
-        </div>
-      )}
+      </label>
 
-      <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileChange} />
+      {/* Options */}
+      <div className="flex gap-4">
+        <label className="flex items-center gap-2 cursor-pointer text-sm">
+          <input
+            type="checkbox"
+            checked={enhance}
+            onChange={e => setEnhance(e.target.checked)}
+            className="rounded"
+          />
+          <span>Enhance quality</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer text-sm">
+          <input
+            type="checkbox"
+            checked={compress}
+            onChange={e => setCompress(e.target.checked)}
+            className="rounded"
+          />
+          <span>Compress output</span>
+        </label>
+      </div>
 
+      {/* Image grid */}
       {images.length > 0 && (
-        <div className="space-y-2 max-h-48 overflow-y-auto scrollbar-thin">
-          {images.map((img) => (
-            <div key={img.id} className="flex items-center gap-2 p-2 rounded-lg bg-secondary/50 border border-border/50">
-              <img src={img.dataUrl} alt={img.name} className="w-10 h-10 object-cover rounded" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium truncate">{img.name}</p>
-                {img.enhanced && <p className="text-xs text-success">✓ Enhanced</p>}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          {images.map((entry, index) => (
+            <div key={entry.id} className="relative group rounded-xl overflow-hidden border border-border bg-card">
+              <div className="aspect-square overflow-hidden">
+                <img
+                  src={entry.preview}
+                  alt={entry.name}
+                  className="w-full h-full object-cover"
+                />
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 text-primary"
-                onClick={() => enhanceImage(img.id)}
-                title="Auto enhance"
-              >
-                <Sparkles className="w-3 h-3" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 text-destructive"
-                onClick={() => removeImage(img.id)}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors" />
+              <button
+                onClick={() => removeImage(entry.id)}
+                className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
               >
                 <X className="w-3 h-3" />
-              </Button>
+              </button>
+              <div className="absolute bottom-0 left-0 right-0 p-1.5 bg-gradient-to-t from-black/60 to-transparent">
+                <p className="text-xs text-white truncate">{index + 1}. {entry.name}</p>
+              </div>
             </div>
           ))}
         </div>
       )}
 
-      <div className="flex items-center gap-2">
-        <Switch checked={enhance} onCheckedChange={setEnhance} id="enhance-pdf" />
-        <Label htmlFor="enhance-pdf" className="text-xs cursor-pointer">Auto-enhance images</Label>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <Switch checked={compress} onCheckedChange={setCompress} id="compress-pdf" />
-        <Label htmlFor="compress-pdf" className="text-xs cursor-pointer">Compress PDF (smaller file size)</Label>
-      </div>
+      {images.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {images.length} image{images.length > 1 ? 's' : ''} will be combined into a single PDF
+        </p>
+      )}
 
       <Button
-        size="sm"
-        onClick={handleCreatePDF}
-        disabled={images.length === 0 || isProcessing}
-        className="w-full gap-2"
+        onClick={createPDF}
+        disabled={images.length === 0 || isCreating}
+        className="w-full"
+        size="lg"
       >
-        {isProcessing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
-        Create PDF ({images.length} image{images.length !== 1 ? 's' : ''})
-      </Button>
-
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={handleDownloadZip}
-        disabled={!lastCreatedPDF || isZipping}
-        className="w-full gap-2"
-      >
-        {isZipping ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Archive className="w-3.5 h-3.5" />}
-        {isZipping ? 'Creating ZIP...' : 'Download as ZIP'}
+        {isCreating ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Creating PDF...
+          </>
+        ) : success ? (
+          <>
+            <CheckCircle className="w-4 h-4 mr-2" />
+            PDF Downloaded!
+          </>
+        ) : (
+          <>
+            <Download className="w-4 h-4 mr-2" />
+            Create & Download PDF
+          </>
+        )}
       </Button>
     </div>
   );

@@ -1,359 +1,316 @@
-import React, { useRef } from 'react';
+import React, { useState, useRef } from 'react';
+import { FileText, Image, Plus, Trash2, RotateCcw, Download, Loader2, CheckCircle, CheckSquare, Square, GripVertical, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  FilePlus2,
-  ImagePlus,
-  Loader2,
-  AlertCircle,
-  X,
-  Download,
-  Trash2,
-  RotateCcw,
-  FileText,
-  Image as ImageIcon,
-} from 'lucide-react';
-import { toast } from 'sonner';
-import type { PDFFile, MergeSplitEntry } from './usePDFOperations';
+import { Checkbox } from '@/components/ui/checkbox';
+import { MergeSplitEntry } from './usePDFOperations';
 
 interface MergeSplitToolsProps {
-  isProcessing: boolean;
-  isMerging: boolean;
-  mergeError: string | null;
   entries: MergeSplitEntry[];
   onAddFiles: (files: File[]) => Promise<void>;
-  onToggleRemoval: (entryId: string) => void;
-  onMergeAndDownload: () => Promise<void>;
+  onToggleRemoval: (id: string) => void;
+  onReorder: (fromIndex: number, toIndex: number) => void;
+  onMergeAndDownload: (selectedIds?: string[]) => Promise<void>;
   onClear: () => void;
-  // Legacy props (kept for compatibility, not used in new UI)
-  pdfFiles: PDFFile[];
-  onMerge: () => Promise<void>;
-  onSplit: () => Promise<void>;
-  onRemovePages: (fileId: string, pageIndices: number[]) => Promise<void>;
+  isMerging: boolean;
 }
 
 export default function MergeSplitTools({
-  isMerging,
-  mergeError,
   entries,
   onAddFiles,
   onToggleRemoval,
+  onReorder,
   onMergeAndDownload,
   onClear,
+  isMerging,
 }: MergeSplitToolsProps) {
-  const pdfInputRef = useRef<HTMLInputElement>(null);
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const anyInputRef = useRef<HTMLInputElement>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [success, setSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const dragIndexRef = useRef<number | null>(null);
 
-  const activeCount = entries.filter(e => !e.removed).length;
-  const removedCount = entries.filter(e => e.removed).length;
+  const activeEntries = entries.filter(e => !e.removed);
+  const allSelected = activeEntries.length > 0 && selectedIds.size === activeEntries.length;
+  const someSelected = selectedIds.size > 0 && selectedIds.size < activeEntries.length;
 
-  const handlePDFInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    if (files.length === 0) return;
-    try {
-      await onAddFiles(files);
-      toast.success(`Added ${files.length} PDF file${files.length !== 1 ? 's' : ''}`);
-    } catch {
-      toast.error('Failed to load PDF');
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(activeEntries.map(e => e.id)));
     }
-    e.target.value = '';
   };
 
-  const handleImageInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    if (files.length === 0) return;
-    try {
-      await onAddFiles(files);
-      toast.success(`Added ${files.length} image${files.length !== 1 ? 's' : ''}`);
-    } catch {
-      toast.error('Failed to load image');
-    }
-    e.target.value = '';
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
-  const handleAnyInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    if (files.length === 0) return;
-    try {
-      await onAddFiles(files);
-      toast.success(`Added ${files.length} file${files.length !== 1 ? 's' : ''}`);
-    } catch {
-      toast.error('Failed to load files');
+  const handleAddFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setIsLoading(true);
+      try {
+        await onAddFiles(Array.from(e.target.files));
+      } finally {
+        setIsLoading(false);
+      }
     }
     e.target.value = '';
   };
 
   const handleMerge = async () => {
-    await onMergeAndDownload();
-    if (!mergeError) {
-      toast.success('PDF merged and downloaded!');
-    }
+    setSuccess(false);
+    const idsToMerge = selectedIds.size > 0 ? Array.from(selectedIds) : undefined;
+    await onMergeAndDownload(idsToMerge);
+    setSuccess(true);
+    setTimeout(() => setSuccess(false), 3000);
   };
 
-  return (
-    <div className="space-y-5">
-      {/* Header & Add Buttons */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="flex-1">
-          <h3 className="text-sm font-semibold text-foreground">Page Explorer</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Import PDFs and images, remove unwanted pages, then merge into one PDF.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Hidden file inputs */}
-          <input
-            ref={pdfInputRef}
-            type="file"
-            accept="application/pdf"
-            multiple
-            className="hidden"
-            onChange={handlePDFInput}
-          />
-          <input
-            ref={imageInputRef}
-            type="file"
-            accept="image/jpeg,image/jpg,image/png,image/webp"
-            multiple
-            className="hidden"
-            onChange={handleImageInput}
-          />
-          <input
-            ref={anyInputRef}
-            type="file"
-            accept="application/pdf,image/jpeg,image/jpg,image/png,image/webp"
-            multiple
-            className="hidden"
-            onChange={handleAnyInput}
-          />
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    dragIndexRef.current = index;
+    e.dataTransfer.effectAllowed = 'move';
+  };
 
-          <button
-            className="tool-btn text-xs"
-            onClick={() => pdfInputRef.current?.click()}
-          >
-            <FilePlus2 className="w-3.5 h-3.5" />
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  };
+
+  const handleDrop = (e: React.DragEvent, toIndex: number) => {
+    e.preventDefault();
+    const fromIndex = dragIndexRef.current;
+    if (fromIndex !== null && fromIndex !== toIndex) {
+      onReorder(fromIndex, toIndex);
+    }
+    dragIndexRef.current = null;
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    dragIndexRef.current = null;
+    setDragOverIndex(null);
+  };
+
+  const activeCount = activeEntries.length;
+  const removedCount = entries.filter(e => e.removed).length;
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Action buttons */}
+      <div className="flex flex-wrap gap-2">
+        <label className="cursor-pointer">
+          <input
+            type="file"
+            multiple
+            accept=".pdf"
+            className="hidden"
+            onChange={handleAddFiles}
+            disabled={isLoading}
+          />
+          <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-border bg-card hover:bg-primary/10 hover:border-primary/40 transition-colors ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
+            <FileText className="w-4 h-4 text-red-400" />
             Add PDF
-          </button>
-          <button
-            className="tool-btn text-xs"
-            onClick={() => imageInputRef.current?.click()}
-          >
-            <ImagePlus className="w-3.5 h-3.5" />
-            Add Image
-          </button>
-          {entries.length > 0 && (
-            <button
-              className="tool-btn text-xs text-destructive hover:bg-destructive hover:text-destructive-foreground border-destructive/30"
-              onClick={onClear}
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              Clear All
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Empty State */}
-      {entries.length === 0 && (
-        <div
-          className="upload-zone flex flex-col items-center justify-center gap-3 py-16 cursor-pointer"
-          onClick={() => anyInputRef.current?.click()}
-        >
-          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <FilePlus2 className="w-6 h-6 text-primary" />
-          </div>
-          <div className="text-center">
-            <p className="text-sm font-medium text-foreground">Import PDF or Image</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Click to browse or drop files here
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Supports PDF, JPG, PNG, WEBP
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Page Grid */}
-      {entries.length > 0 && (
-        <>
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>
-              {entries.length} page{entries.length !== 1 ? 's' : ''} total
-              {removedCount > 0 && (
-                <span className="text-destructive ml-2">· {removedCount} removed</span>
-              )}
-              {activeCount > 0 && (
-                <span className="text-primary ml-2">· {activeCount} will be merged</span>
-              )}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 max-h-[480px] overflow-y-auto scrollbar-thin pr-1">
-            {entries.map((entry, idx) => (
-              <PageEntryCard
-                key={entry.id}
-                entry={entry}
-                index={idx}
-                onToggleRemoval={onToggleRemoval}
-              />
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* Merge Error */}
-      {mergeError && (
-        <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive">
-          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium">Merge failed</p>
-            <p className="text-xs mt-0.5 opacity-80">{mergeError}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Merge & Download Button */}
-      {entries.length > 0 && (
-        <div className="pt-2 border-t border-border/50">
-          <Button
-            className="w-full gap-2 tool-btn-active"
-            onClick={handleMerge}
-            disabled={isMerging || activeCount === 0}
-          >
-            {isMerging ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Merging PDF…
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4" />
-                Merge &amp; Download ({activeCount} page{activeCount !== 1 ? 's' : ''})
-              </>
-            )}
-          </Button>
-          {activeCount === 0 && !isMerging && (
-            <p className="text-xs text-muted-foreground text-center mt-2">
-              Un-remove at least one page to enable merging.
-            </p>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Page Entry Card ──────────────────────────────────────────────────────────
-
-interface PageEntryCardProps {
-  entry: MergeSplitEntry;
-  index: number;
-  onToggleRemoval: (id: string) => void;
-}
-
-function PageEntryCard({ entry, index, onToggleRemoval }: PageEntryCardProps) {
-  return (
-    <div
-      className={`relative rounded-lg border-2 overflow-hidden transition-all duration-200 ${
-        entry.removed
-          ? 'border-destructive/40 opacity-40'
-          : 'border-border/50 hover:border-primary/40'
-      }`}
-    >
-      {/* Thumbnail */}
-      <div className="aspect-[3/4] bg-muted/20 flex items-center justify-center relative">
-        {entry.thumbnailLoading && (
-          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-        )}
-        {entry.thumbnailError && !entry.thumbnailLoading && (
-          <div className="flex flex-col items-center gap-1 text-destructive p-2 text-center">
-            <AlertCircle className="w-4 h-4" />
-            <span className="text-xs leading-tight">Error</span>
-          </div>
-        )}
-        {entry.thumbnailDataUrl && !entry.thumbnailLoading && !entry.thumbnailError && (
-          <ThumbnailImg
-            src={entry.thumbnailDataUrl}
-            alt={entry.label}
-            removed={entry.removed}
+          </span>
+        </label>
+        <label className="cursor-pointer">
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            className="hidden"
+            onChange={handleAddFiles}
+            disabled={isLoading}
           />
-        )}
-
-        {/* Remove / Restore button */}
-        <button
-          onClick={() => onToggleRemoval(entry.id)}
-          title={entry.removed ? 'Restore page' : 'Remove page'}
-          className={`absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center transition-all shadow-sm z-10 ${
-            entry.removed
-              ? 'bg-primary text-primary-foreground hover:bg-primary/80'
-              : 'bg-destructive text-destructive-foreground hover:bg-destructive/80'
-          }`}
-        >
-          {entry.removed ? (
-            <RotateCcw className="w-2.5 h-2.5" />
-          ) : (
-            <X className="w-2.5 h-2.5" />
-          )}
-        </button>
-
-        {/* Removed overlay */}
-        {entry.removed && (
-          <div className="absolute inset-0 bg-destructive/10 pointer-events-none flex items-center justify-center">
-            <span className="text-destructive text-xs font-bold bg-background/80 px-1.5 py-0.5 rounded">
-              Removed
-            </span>
-          </div>
+          <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-border bg-card hover:bg-primary/10 hover:border-primary/40 transition-colors ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
+            <Image className="w-4 h-4 text-blue-400" />
+            Add Images
+          </span>
+        </label>
+        {entries.length > 0 && (
+          <button
+            onClick={onClear}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-border bg-card hover:bg-destructive/10 hover:border-destructive/40 hover:text-destructive transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            Clear All
+          </button>
         )}
       </div>
 
-      {/* Footer */}
-      <div className="px-1.5 py-1 bg-card/80 flex items-center gap-1">
-        {entry.type === 'pdf-page' ? (
-          <FileText className="w-2.5 h-2.5 text-primary flex-shrink-0" />
-        ) : (
-          <ImageIcon className="w-2.5 h-2.5 text-accent flex-shrink-0" />
-        )}
-        <span className="text-xs text-muted-foreground truncate flex-1 text-center">
-          {entry.type === 'pdf-page' ? `p.${entry.pageNumber}` : `img.${index + 1}`}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function ThumbnailImg({ src, alt, removed }: { src: string; alt: string; removed: boolean }) {
-  const [error, setError] = React.useState(false);
-  const [loaded, setLoaded] = React.useState(false);
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center gap-1 text-destructive">
-        <AlertCircle className="w-4 h-4" />
-        <span className="text-xs">Error</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative w-full h-full">
-      {!loaded && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+      {isLoading && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Loading pages...
         </div>
       )}
-      <img
-        src={src}
-        alt={alt}
-        className="w-full h-full object-contain"
-        style={{
-          opacity: loaded ? (removed ? 0.4 : 1) : 0,
-          transition: 'opacity 0.15s',
-          filter: removed ? 'grayscale(0.5)' : 'none',
-        }}
-        onLoad={() => setLoaded(true)}
-        onError={() => setError(true)}
-      />
+
+      {/* Select All + status */}
+      {entries.length > 0 && (
+        <div className="flex items-center justify-between">
+          <button
+            onClick={toggleSelectAll}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {allSelected ? (
+              <CheckSquare className="w-4 h-4 text-primary" />
+            ) : someSelected ? (
+              <CheckSquare className="w-4 h-4 text-primary opacity-60" />
+            ) : (
+              <Square className="w-4 h-4" />
+            )}
+            <span>{allSelected ? 'Deselect All' : 'Select All'}</span>
+            {selectedIds.size > 0 && (
+              <span className="text-xs text-muted-foreground">({selectedIds.size} selected)</span>
+            )}
+          </button>
+          <span className="text-xs text-muted-foreground">
+            {activeCount} active{removedCount > 0 ? `, ${removedCount} removed` : ''}
+          </span>
+        </div>
+      )}
+
+      {/* Page grid */}
+      {entries.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-border rounded-xl">
+          <FileText className="w-12 h-12 text-muted-foreground/40 mb-3" />
+          <p className="text-muted-foreground text-sm">No files added yet</p>
+          <p className="text-muted-foreground/60 text-xs mt-1">Add PDFs or images to merge</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          {entries.map((entry, index) => {
+            const isSelected = selectedIds.has(entry.id);
+            const isDragTarget = dragOverIndex === index;
+            return (
+              <div
+                key={entry.id}
+                draggable
+                onDragStart={e => handleDragStart(e, index)}
+                onDragOver={e => handleDragOver(e, index)}
+                onDrop={e => handleDrop(e, index)}
+                onDragEnd={handleDragEnd}
+                className={`relative flex flex-col rounded-xl border overflow-hidden transition-all cursor-grab active:cursor-grabbing ${
+                  entry.removed
+                    ? 'opacity-40 border-border'
+                    : isSelected
+                    ? 'border-primary/60 bg-primary/10'
+                    : 'border-border bg-card hover:border-primary/30'
+                } ${isDragTarget ? 'border-primary border-2 scale-105 shadow-lg' : ''}`}
+              >
+                {/* Drag handle */}
+                <div className="absolute top-1 left-1 z-10 p-0.5 rounded bg-black/30 text-white/70">
+                  <GripVertical className="w-3 h-3" />
+                </div>
+
+                {/* Checkbox */}
+                {!entry.removed && (
+                  <div
+                    className="absolute top-1 right-1 z-10"
+                    onClick={e => { e.stopPropagation(); toggleSelect(entry.id); }}
+                  >
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => toggleSelect(entry.id)}
+                      className="bg-black/40 border-white/60 data-[state=checked]:bg-primary"
+                    />
+                  </div>
+                )}
+
+                {/* Thumbnail */}
+                <div className="aspect-[3/4] bg-muted/30 flex items-center justify-center overflow-hidden">
+                  {entry.thumbnail ? (
+                    <img
+                      src={entry.thumbnail}
+                      alt={`${entry.sourceName} page ${entry.pageIndex + 1}`}
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 text-muted-foreground/50">
+                      {entry.type === 'pdf-page' ? (
+                        <FileText className="w-8 h-8" />
+                      ) : (
+                        <Image className="w-8 h-8" />
+                      )}
+                    </div>
+                  )}
+                  {entry.removed && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                      <X className="w-8 h-8 text-white/80" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Info + controls */}
+                <div className="p-1.5 flex flex-col gap-1">
+                  <p className="text-xs truncate text-muted-foreground leading-tight">
+                    {entry.sourceName}
+                  </p>
+                  {entry.type === 'pdf-page' && (
+                    <p className="text-xs text-muted-foreground/60">
+                      p.{entry.pageIndex + 1}/{entry.totalPages}
+                    </p>
+                  )}
+                  <button
+                    onClick={() => onToggleRemoval(entry.id)}
+                    className={`flex items-center justify-center gap-1 text-xs py-0.5 px-1 rounded transition-colors ${
+                      entry.removed
+                        ? 'bg-primary/20 text-primary hover:bg-primary/30'
+                        : 'bg-destructive/20 text-destructive hover:bg-destructive/30'
+                    }`}
+                  >
+                    {entry.removed ? (
+                      <><RotateCcw className="w-3 h-3" /> Restore</>
+                    ) : (
+                      <><X className="w-3 h-3" /> Remove</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Merge info */}
+      {entries.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {selectedIds.size > 0
+            ? `${selectedIds.size} page(s) selected for merge`
+            : `All ${activeCount} active page(s) will be merged`}
+        </p>
+      )}
+
+      {/* Download button */}
+      <Button
+        onClick={handleMerge}
+        disabled={activeCount === 0 || isMerging}
+        className="w-full"
+        size="lg"
+      >
+        {isMerging ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Merging PDF...
+          </>
+        ) : success ? (
+          <>
+            <CheckCircle className="w-4 h-4 mr-2" />
+            Downloaded!
+          </>
+        ) : (
+          <>
+            <Download className="w-4 h-4 mr-2" />
+            Merge & Download PDF
+            {selectedIds.size > 0 && ` (${selectedIds.size})`}
+          </>
+        )}
+      </Button>
     </div>
   );
 }

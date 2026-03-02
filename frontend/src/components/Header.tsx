@@ -1,10 +1,14 @@
 import { useTheme } from 'next-themes';
-import { Sun, Moon, Zap } from 'lucide-react';
+import { Sun, Moon, Zap, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAppInfo } from '../hooks/useQueries';
 import { Badge } from '@/components/ui/badge';
 
-export default function Header() {
+interface HeaderProps {
+  onOpenMultimedia?: () => void;
+}
+
+export default function Header({ onOpenMultimedia }: HeaderProps) {
   const { theme, setTheme } = useTheme();
   const { data: appInfo, isSuccess } = useAppInfo();
 
@@ -38,12 +42,24 @@ export default function Header() {
           </div>
 
           {/* Right side */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {isSuccess && (
               <Badge variant="outline" className="hidden sm:flex items-center gap-1.5 text-xs border-success/40 text-success">
                 <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                 Connected
               </Badge>
+            )}
+
+            {onOpenMultimedia && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onOpenMultimedia}
+                className="hidden sm:flex items-center gap-1.5 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors text-xs font-medium"
+              >
+                <Film className="w-4 h-4" />
+                Multimedia
+              </Button>
             )}
 
             <Button

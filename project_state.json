@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 51,
-  "summary": "All-in-One Conversion Tool App website with five main modules: Image Editor, PDF Converter, Image Converter, Passport Size Photo Converter, and Image Background Remover. Features dark/light mode, mobile-responsive modern UI with smooth animations.",
+  "projectStateVersion": 61,
+  "summary": "All-in-One Conversion Tool App website with five main modules: Image Editor, PDF Converter, Image Converter, Passport Size Photo Converter, and Image Background Remover. Features dark/light mode, mobile-responsive modern UI with smooth animations. A new Multimedia App is also being built with four modules: MP3 Cutter, Video Cutter, Video Downloader, and IP Camera.",
   "architectural_notes": [
     "Client-side processing preferred for image/PDF operations to avoid server costs and privacy concerns",
     "Use canvas API or libraries like Fabric.js for image editing; PDF-lib or pdf.js for PDF operations",
@@ -10,7 +10,9 @@
     "Image Background Remover uses Canvas API with brush-based mask painting for manual background selection; transparent PNG output via canvas compositing; no server-side AI required (optional client-side model)",
     "APK conversion requires wrapping the web app in a WebView shell (e.g., using Capacitor or Cordova) or a PWA-to-APK tool (e.g., TWA/Bubblewrap)",
     "Video Downloader tab uses YouTube Data API v3 (key: AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ) for YouTube video metadata/download; Facebook video download may require third-party proxy or scraping approach due to API restrictions",
-    "PDF Scanner tab uses MediaDevices.getUserMedia for live camera feed; document edge detection for auto-crop can use canvas-based algorithms or a library like OpenCV.js; brightness/contrast/darken-text adjustments applied via Canvas 2D filters before PDF assembly"
+    "PDF Scanner tab uses MediaDevices.getUserMedia for live camera feed; document edge detection for auto-crop can use canvas-based algorithms or a library like OpenCV.js; brightness/contrast/darken-text adjustments applied via Canvas 2D filters before PDF assembly",
+    "Camera/getUserMedia access must be restricted to the PDF Scanner component only; all other modules (Image Editor, Background Remover, Passport Photo, etc.) must not request camera permission",
+    "Multimedia App uses client-side Web APIs: MediaRecorder/getUserMedia for IP Camera streaming, HTMLVideoElement/canvas for video trimming, Web Audio API or a library (e.g., wavesurfer.js / ffmpeg.wasm) for MP3 cutting"
   ],
   "known_issues": [
     "HEIC format support is limited in browsers and may require a conversion library (e.g., heic2any)",
@@ -19,7 +21,9 @@
     "APK packaging is not natively supported in a browser-only stack; requires a build tool like Capacitor, Cordova, or Bubblewrap/TWA",
     "Direct YouTube/Facebook video downloading via browser is restricted by CORS and platform ToS; a server-side proxy or third-party service may be required for actual video download functionality",
     "Background Remover: uploaded image does not appear in the canvas/preview after upload",
-    "PDF Scanner: camera access requires HTTPS and user permission; auto document edge detection in-browser is complex and may require OpenCV.js or a similar library loaded from CDN"
+    "PDF Scanner: camera access requires HTTPS and user permission; auto document edge detection in-browser is complex and may require OpenCV.js or a similar library loaded from CDN",
+    "IP Camera feature requires the device to act as a server; broadcasting the stream to other browsers over WiFi from a pure browser context is not natively supported — requires a WebRTC signaling server or a native app bridge",
+    "Client-side video/audio cutting with ffmpeg.wasm is feasible but has large bundle size (~30MB); consider lazy-loading"
   ],
   "isFixRequest": false,
   "existing_features": [
@@ -638,6 +642,110 @@
         "REQ-79"
       ],
       "version": 1
+    },
+    {
+      "id": "feature-in-the-pdf-scanner-component-frontend-src-modules-pdfconverter-pdfscanner-tsx-update-the-choose-from-files-file-input-element-so-that-it-also-accepts-camera-capture-as-an-input-source-on-mobile-and-desktop-devices-set-the-html-file-input-s-capture-attribute-to-environment-rear-camera-preferred-and-ensure-the-accept-attribute-includes-image-mime-types-image-jpeg-image-png-image-webp-alongside-pdf-on-mobile-devices-this-causes-the-native-os-file-picker-to-present-camera-as-a-selectable-option-alongside-the-file-browser-when-the-user-selects-camera-the-device-s-native-camera-app-opens-in-document-scan-mode-any-image-captured-via-the-camera-must-be-appended-to-the-scanned-pages-list-exactly-as-images-selected-from-the-file-system-are-added-directly-as-scanned-page-entries-and-processed-through-the-existing-auto-edge-detection-crop-adjustment-and-convert-to-pdf-export-workflow-do-not-add-a-separate-button-the-camera-option-must-be-accessible-through-the-existing-choose-from-files-button-s-file-picker-dialog",
+      "title": "In the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), update the 'Choose from Files' file input element so that it also accepts camera capture as an input source on mobile and desktop devices. Set the HTML file input's 'capture' attribute to 'environment' (rear camera preferred) and ensure the 'accept' attribute includes image MIME types (image/jpeg, image/png, image/webp) alongside PDF. On mobile devices, this causes the native OS file picker to present 'Camera' as a selectable option alongside the file browser; when the user selects 'Camera', the device's native camera app opens in document/scan mode. Any image captured via the camera must be appended to the scanned pages list exactly as images selected from the file system are — added directly as scanned page entries and processed through the existing auto edge-detection, crop, adjustment, and 'Convert to PDF' export workflow. Do not add a separate button; the camera option must be accessible through the existing 'Choose from Files' button's file picker dialog.",
+      "reqIds": [
+        "REQ-80"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-pdf-scanner-component-frontend-src-modules-pdfconverter-pdfscanner-tsx-add-a-dedicated-camera-button-alongside-the-existing-choose-from-files-button-when-the-user-clicks-the-camera-button-it-must-trigger-the-device-s-native-camera-directly-on-mobile-this-opens-the-system-camera-app-in-document-scan-mode-and-on-desktop-it-requests-camera-access-via-the-browser-implement-this-by-creating-a-separate-hidden-file-input-element-with-accept-image-and-capture-environment-attributes-without-pdf-in-the-accept-list-so-that-tapping-it-on-mobile-devices-immediately-launches-the-system-camera-rather-than-showing-a-file-picker-the-captured-image-is-appended-to-the-scanned-pages-list-as-a-new-scanned-page-entry-and-processed-through-the-existing-auto-edge-detection-crop-adjustment-and-convert-to-pdf-export-workflow-exactly-as-images-imported-via-choose-from-files-are-handled",
+      "title": "In the PDF Scanner component (frontend/src/modules/PDFConverter/PDFScanner.tsx), add a dedicated 'Camera' button alongside the existing 'Choose from Files' button. When the user clicks the 'Camera' button, it must trigger the device's native camera directly — on mobile this opens the system camera app in document/scan mode, and on desktop it requests camera access via the browser. Implement this by creating a separate hidden file input element with accept='image/*' and capture='environment' attributes (without PDF in the accept list), so that tapping it on mobile devices immediately launches the system camera rather than showing a file picker. The captured image is appended to the scanned pages list as a new scanned page entry and processed through the existing auto edge-detection, crop, adjustment, and 'Convert to PDF' export workflow, exactly as images imported via 'Choose from Files' are handled.",
+      "reqIds": [
+        "REQ-81"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-background-remover-module-frontend-src-modules-backgroundremover-brushtoolpanel-tsx-and-frontend-src-modules-backgroundremover-usebackgroundremover-ts-fix-and-improve-the-brush-painting-interaction-so-that-strokes-are-rendered-smoothly-on-the-canvas-without-gaps-jitter-or-lag-use-continuous-interpolation-between-pointer-events-connect-consecutive-mouse-touch-points-with-line-segments-on-the-mask-canvas-so-that-fast-brush-movements-produce-a-solid-unbroken-painted-path-the-semi-transparent-red-overlay-must-update-in-real-time-as-the-user-paints-without-flickering-or-partial-redraws",
+      "title": "In the Background Remover module (frontend/src/modules/BackgroundRemover/BrushToolPanel.tsx and frontend/src/modules/BackgroundRemover/useBackgroundRemover.ts), fix and improve the brush painting interaction so that strokes are rendered smoothly on the canvas without gaps, jitter, or lag. Use continuous interpolation between pointer events (connect consecutive mouse/touch points with line segments on the mask canvas) so that fast brush movements produce a solid, unbroken painted path. The semi-transparent red overlay must update in real time as the user paints without flickering or partial redraws.",
+      "reqIds": [
+        "REQ-82"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-background-remover-module-frontend-src-modules-backgroundremover-brushtoolpanel-tsx-and-frontend-src-modules-backgroundremover-usebackgroundremover-ts-replace-the-existing-fixed-brush-size-preset-buttons-small-medium-large-with-a-continuous-brush-thickness-slider-range-4px-to-100px-that-allows-the-user-to-set-any-brush-size-within-that-range-display-the-current-brush-size-value-numerically-next-to-the-slider-the-selected-brush-size-must-be-immediately-applied-to-subsequent-brush-strokes-on-the-canvas-the-existing-preset-size-buttons-may-be-removed-or-replaced-entirely-by-this-slider",
+      "title": "In the Background Remover module (frontend/src/modules/BackgroundRemover/BrushToolPanel.tsx and frontend/src/modules/BackgroundRemover/useBackgroundRemover.ts), replace the existing fixed brush-size preset buttons (small/medium/large) with a continuous brush thickness slider (range: 4px to 100px) that allows the user to set any brush size within that range. Display the current brush size value numerically next to the slider. The selected brush size must be immediately applied to subsequent brush strokes on the canvas. The existing preset size buttons may be removed or replaced entirely by this slider.",
+      "reqIds": [
+        "REQ-83"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-pdf-converter-files-tab-frontend-src-modules-pdfconverter-pdffilelist-tsx-and-frontend-src-modules-pdfconverter-tsx-add-a-file-selection-mechanism-so-users-can-select-individual-files-one-by-one-via-checkboxes-on-each-file-list-item-or-select-all-files-at-once-via-a-select-all-checkbox-button-the-existing-create-pdf-button-already-present-below-the-file-list-must-operate-on-all-currently-selected-files-if-no-files-are-explicitly-selected-it-should-default-to-all-files-in-the-list-the-selected-state-must-be-visually-indicated-e-g-highlighted-row-or-checked-checkbox-style-selection-controls-using-the-existing-glassmorphism-design-system-tool-btn-teal-cyan-accent-classes",
+      "title": "In the PDF Converter Files tab (frontend/src/modules/PDFConverter/PDFFileList.tsx and frontend/src/modules/PDFConverter.tsx), add a file selection mechanism so users can select individual files one by one via checkboxes on each file list item, or select all files at once via a 'Select All' checkbox/button. The existing 'Create PDF' button (already present below the file list) must operate on all currently selected files. If no files are explicitly selected, it should default to all files in the list. The selected-state must be visually indicated (e.g., highlighted row or checked checkbox). Style selection controls using the existing glassmorphism design system (tool-btn, teal/cyan accent classes).",
+      "reqIds": [
+        "REQ-84"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-in-the-pdf-converter-merge-split-tab-frontend-src-modules-pdfconverter-mergesplittools-tsx-and-frontend-src-modules-pdfconverter-usepdfoperations-ts-add-a-file-page-selection-mechanism-so-users-can-select-individual-page-entries-one-by-one-via-checkboxes-on-each-thumbnail-or-select-all-entries-via-a-select-all-control-additionally-implement-drag-to-reorder-for-all-entries-in-the-unified-page-sequence-thumbnail-grid-each-thumbnail-must-be-draggable-and-droppable-onto-another-position-so-users-can-change-the-serial-order-shift-files-pages-relative-to-one-another-before-generating-the-pdf-the-existing-merge-download-create-pdf-action-button-at-the-bottom-of-the-tab-must-generate-the-merged-pdf-using-the-current-reordered-non-removed-page-sequence-and-trigger-a-browser-file-download-style-all-new-controls-using-the-existing-glassmorphism-design-system",
+      "title": "In the PDF Converter Merge/Split tab (frontend/src/modules/PDFConverter/MergeSplitTools.tsx and frontend/src/modules/PDFConverter/usePDFOperations.ts), add a file/page selection mechanism so users can select individual page entries one by one via checkboxes on each thumbnail, or select all entries via a 'Select All' control. Additionally, implement drag-to-reorder for all entries in the unified page sequence thumbnail grid: each thumbnail must be draggable and droppable onto another position so users can change the serial order (shift files/pages relative to one another) before generating the PDF. The existing 'Merge & Download' / 'Create PDF' action button at the bottom of the tab must generate the merged PDF using the current (reordered, non-removed) page sequence and trigger a browser file download. Style all new controls using the existing glassmorphism design system.",
+      "reqIds": [
+        "REQ-85"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-remove-all-camera-getusermedia-mediadevices-api-access-and-any-related-ui-controls-camera-buttons-video-elements-capture-buttons-from-every-module-except-the-pdf-scanner-tab-component-frontend-src-modules-pdfconverter-pdfscanner-tsx-specifically-audit-and-remove-camera-access-from-the-image-editor-module-frontend-src-modules-imageeditor-imageuploadpanel-tsx-remove-the-capture-via-camera-option-the-pdf-converter-createpdffromimages-component-frontend-src-modules-pdfconverter-createpdffromimages-tsx-remove-any-camera-capture-button-and-any-other-module-or-component-outside-of-pdfscanner-tsx-that-calls-navigator-mediadevices-getusermedia-or-renders-a-camera-input-the-pdf-scanner-component-must-retain-its-existing-camera-file-based-capture-functionality-untouched",
+      "title": "Remove all camera/getUserMedia/MediaDevices API access and any related UI controls (camera buttons, video elements, capture buttons) from every module EXCEPT the PDF Scanner tab component (frontend/src/modules/PDFConverter/PDFScanner.tsx). Specifically, audit and remove camera access from: the Image Editor module (frontend/src/modules/ImageEditor/ImageUploadPanel.tsx — remove the 'Capture via Camera' option), the PDF Converter CreatePDFFromImages component (frontend/src/modules/PDFConverter/CreatePDFFromImages.tsx — remove any camera capture button), and any other module or component outside of PDFScanner.tsx that calls navigator.mediaDevices.getUserMedia or renders a camera input. The PDF Scanner component must retain its existing camera/file-based capture functionality untouched.",
+      "reqIds": [
+        "REQ-86"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-a-new-standalone-react-application-separate-from-the-existing-conversion-tool-at-the-root-level-with-a-tabbed-navigation-layout-containing-four-tabs-mp3-cutter-video-cutter-video-downloader-and-ip-camera-include-a-dark-mode-light-mode-toggle-in-the-header-the-layout-must-be-fully-mobile-responsive-with-smooth-tab-switching-animations",
+      "title": "Create a new standalone React application (separate from the existing conversion tool) at the root level with a tabbed navigation layout containing four tabs: 'MP3 Cutter', 'Video Cutter', 'Video Downloader', and 'IP Camera'. Include a dark mode / light mode toggle in the header. The layout must be fully mobile-responsive with smooth tab-switching animations.",
+      "reqIds": [
+        "REQ-87"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-the-mp3-cutter-module-provide-a-file-upload-button-that-accepts-mp3-aac-wav-and-mp4-files-after-upload-load-the-audio-using-the-web-audio-api-and-render-a-waveform-visualization-on-a-canvas-element-display-the-audio-duration-allow-the-user-to-drag-two-range-handles-start-and-end-markers-on-the-waveform-to-select-a-segment-of-the-audio-track-show-the-selected-start-time-and-end-time-numerically-provide-a-cut-download-button-that-when-clicked-extracts-the-selected-audio-segment-client-side-using-audiobuffer-slicing-via-the-web-audio-api-and-encoding-to-mp3-using-a-cdn-loaded-lamejs-or-similar-encoder-library-then-triggers-a-browser-download-of-the-trimmed-audio-as-an-mp3-file",
+      "title": "Implement the MP3 Cutter module. Provide a file upload button that accepts MP3, AAC, WAV, and MP4 files. After upload, load the audio using the Web Audio API and render a waveform visualization on a Canvas element. Display the audio duration. Allow the user to drag two range handles (start and end markers) on the waveform to select a segment of the audio track. Show the selected start time and end time numerically. Provide a 'Cut & Download' button that, when clicked, extracts the selected audio segment client-side (using AudioBuffer slicing via the Web Audio API and encoding to MP3 using a CDN-loaded lamejs or similar encoder library), then triggers a browser download of the trimmed audio as an MP3 file.",
+      "reqIds": [
+        "REQ-88"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-the-video-cutter-module-provide-a-file-upload-button-that-accepts-all-common-video-formats-mp4-webm-mov-avi-mkv-after-upload-display-the-video-in-an-html5-video-element-for-playback-preview-render-a-timeline-scrubber-with-two-draggable-handles-start-and-end-trim-points-so-the-user-can-define-the-clip-region-show-the-selected-start-and-end-times-numerically-provide-a-cut-download-button-that-uses-the-mediarecorder-api-or-ffmpeg-wasm-loaded-lazily-from-cdn-to-extract-and-encode-the-selected-video-segment-then-triggers-a-browser-download-of-the-trimmed-video-file-show-a-loading-progress-indicator-during-processing",
+      "title": "Implement the Video Cutter module. Provide a file upload button that accepts all common video formats (MP4, WebM, MOV, AVI, MKV). After upload, display the video in an HTML5 <video> element for playback preview. Render a timeline scrubber with two draggable handles (start and end trim points) so the user can define the clip region. Show the selected start and end times numerically. Provide a 'Cut & Download' button that uses the MediaRecorder API or ffmpeg.wasm (loaded lazily from CDN) to extract and encode the selected video segment, then triggers a browser download of the trimmed video file. Show a loading/progress indicator during processing.",
+      "reqIds": [
+        "REQ-89"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-the-video-downloader-module-provide-a-url-input-field-where-users-paste-a-youtube-video-link-provide-a-download-button-that-when-clicked-calls-the-youtube-data-api-v3-using-the-api-key-aizasydlj5yvdipe6oyjniw-ojg5cz5-krj33yq-to-fetch-video-metadata-title-thumbnail-display-the-video-thumbnail-and-title-since-direct-binary-download-of-youtube-videos-is-blocked-by-cors-the-download-button-must-open-the-youtube-watch-url-in-a-new-browser-tab-and-display-a-clear-user-facing-message-the-video-will-open-in-a-new-tab-use-your-browser-or-a-download-extension-to-save-it-show-a-loading-spinner-while-fetching-metadata-and-a-user-friendly-error-message-if-the-url-is-invalid-or-the-api-returns-an-error",
+      "title": "Implement the Video Downloader module. Provide a URL input field where users paste a YouTube video link. Provide a 'Download' button that, when clicked, calls the YouTube Data API v3 using the API key AIzaSyDlj5yvdIpE6OYJnIw_oJg5Cz5_kRJ33YQ to fetch video metadata (title, thumbnail). Display the video thumbnail and title. Since direct binary download of YouTube videos is blocked by CORS, the 'Download' button must open the YouTube watch URL in a new browser tab and display a clear user-facing message: 'The video will open in a new tab — use your browser or a download extension to save it.' Show a loading spinner while fetching metadata and a user-friendly error message if the URL is invalid or the API returns an error.",
+      "reqIds": [
+        "REQ-90"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-the-ip-camera-module-provide-an-ip-cam-button-that-when-clicked-requests-camera-access-via-navigator-mediadevices-getusermedia-video-true-and-streams-the-live-video-feed-into-an-html5-video-element-displayed-within-the-panel-simultaneously-detect-the-device-s-local-wifi-ip-address-by-fetching-from-a-public-stun-based-webrtc-ice-candidate-gathering-approach-using-rtcpeerconnection-with-a-stun-server-to-extract-the-local-ip-from-ice-candidates-display-the-detected-local-ip-address-prominently-e-g-access-camera-at-http-local-ip-port-along-with-a-note-that-any-browser-on-the-same-wifi-network-can-use-that-address-to-view-the-stream-display-a-clear-error-message-if-camera-access-is-denied-show-a-stop-camera-button-to-stop-the-stream-and-release-the-camera",
+      "title": "Implement the IP Camera module. Provide an 'IP Cam' button that, when clicked, requests camera access via navigator.mediaDevices.getUserMedia (video: true) and streams the live video feed into an HTML5 <video> element displayed within the panel. Simultaneously, detect the device's local WiFi IP address by fetching from a public STUN-based WebRTC ICE candidate gathering approach (using RTCPeerConnection with a STUN server to extract the local IP from ICE candidates). Display the detected local IP address prominently (e.g., 'Access camera at: http://<local-ip>:PORT') along with a note that any browser on the same WiFi network can use that address to view the stream. Display a clear error message if camera access is denied. Show a 'Stop Camera' button to stop the stream and release the camera.",
+      "reqIds": [
+        "REQ-91"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-apply-a-cohesive-dark-first-visual-design-system-to-the-entire-multimedia-app-use-deep-charcoal-slate-backgrounds-vibrant-teal-cyan-accent-colors-for-buttons-and-active-states-crisp-white-typography-subtle-glassmorphism-card-surfaces-backdrop-filter-blur-with-semi-transparent-backgrounds-and-smooth-micro-interaction-animations-button-hover-states-tab-transitions-progress-indicators-enforce-this-design-system-consistently-across-all-four-module-tabs-mp3-cutter-video-cutter-video-downloader-ip-camera-reuse-the-glass-card-and-tool-btn-css-utility-class-patterns-consistent-with-the-existing-app-s-index-css",
+      "title": "Apply a cohesive dark-first visual design system to the entire Multimedia App. Use deep charcoal/slate backgrounds, vibrant teal/cyan accent colors for buttons and active states, crisp white typography, subtle glassmorphism card surfaces (backdrop-filter blur with semi-transparent backgrounds), and smooth micro-interaction animations (button hover states, tab transitions, progress indicators). Enforce this design system consistently across all four module tabs (MP3 Cutter, Video Cutter, Video Downloader, IP Camera). Reuse the glass-card and tool-btn CSS utility class patterns consistent with the existing app's index.css.",
+      "reqIds": [
+        "REQ-92"
+      ],
+      "version": 1
     }
   ],
   "new_feature_requests": [
@@ -828,6 +936,60 @@
     {
       "id": "AR-38",
       "summary": "PDF Scanner: remove the Live Scanner (camera) button entirely; replace with 'Choose from Files' button only; selected images auto-detect page/document edges and apply automatic crop; allow brightness/contrast adjustment and darken text toggle per page; scan multiple pages one by one; convert all to PDF with save and rename options",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-39",
+      "summary": "PDF Scanner: when user clicks 'Choose from Files' button, allow selecting camera as input source (system/mobile camera) so clicking camera option opens the device camera for scanning a document directly",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-40",
+      "summary": "Background Remover Brush Mode: ensure brush paints smoothly over the canvas for area selection, brush thickness (size) adjustment works correctly, and the selected area is clearly highlighted for erase",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-41",
+      "summary": "PDF Converter Files tab: allow selecting files one by one or all at once, then convert and merge them into a PDF using a 'Convert PDF' button",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-42",
+      "summary": "PDF Converter Merge/Split tab: allow adding files one by one or all at once, reorder/shift files by dragging (change serial order), and generate/download the merged PDF via a Download button",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-43",
+      "summary": "Remove camera/getUserMedia access from all modules except the PDF Scanner tab — only the PDF Scanner is allowed to request camera permission",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-44",
+      "summary": "New Multimedia App: MP3 Cutter — import MP3/AAC/WAV/MP4 files, select/cut audio track, download trimmed MP3",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-45",
+      "summary": "New Multimedia App: Video Cutter — import any video file, crop/trim video with cut button, download result",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-46",
+      "summary": "New Multimedia App: Video Downloader — paste YouTube link, one-click download button to download the video",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-47",
+      "summary": "New Multimedia App: IP Camera — start video capture via IP Cam button, display the device's local WiFi IP address so any browser on the same network can access the camera stream",
       "reqIds": [],
       "status": "pending"
     }

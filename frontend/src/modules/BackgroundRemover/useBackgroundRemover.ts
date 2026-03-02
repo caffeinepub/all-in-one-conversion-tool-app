@@ -65,7 +65,8 @@ export function useBackgroundRemover(
   const [cropMode, setCropMode] = useState(false);
   const [cropBox, setCropBox] = useState<CropBox | null>(null);
   const [brushActive, setBrushActive] = useState(false);
-  const [brushSize, setBrushSize] = useState(25);
+  // Default brush size 20px — within the new 4–100 range
+  const [brushSize, setBrushSize] = useState(20);
   const [brushMode, setBrushMode] = useState<'paint' | 'erase'>('paint');
   const [hasMaskStrokes, setHasMaskStrokes] = useState(false);
   const [displaySize, setDisplaySize] = useState<DisplaySize | null>(null);
@@ -113,6 +114,9 @@ export function useBackgroundRemover(
     }
   }, [canvasRef, maskCanvasRef, zoom, rotation]);
 
+  // drawMaskToCanvas checks whether any painted pixels exist and updates hasMaskStrokes.
+  // This is called only at the END of a stroke (mouseup/touchend) to avoid triggering
+  // React state updates (and re-renders) during active painting, which would cause jitter.
   const drawMaskToCanvas = useCallback(() => {
     const maskCanvas = maskCanvasRef.current;
     if (!maskCanvas) return;
@@ -353,6 +357,7 @@ export function useBackgroundRemover(
     const maskCtx = maskCanvas.getContext('2d');
     if (!ctx || !maskCtx) return;
 
+    // Save snapshot for undo before applying the erase
     maskHistoryRef.current.push(
       maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height)
     );

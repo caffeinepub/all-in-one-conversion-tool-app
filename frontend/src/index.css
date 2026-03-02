@@ -147,6 +147,64 @@
     border-color: oklch(var(--primary));
     background-color: oklch(var(--primary) / 0.1);
   }
+
+  /* Multimedia Studio specific styles */
+  .multimedia-bg {
+    background: linear-gradient(135deg, #0a0f1e 0%, #0d1526 50%, #0a1520 100%);
+    min-height: 100vh;
+  }
+
+  .multimedia-header {
+    background: rgba(10, 15, 30, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .multimedia-nav {
+    background: rgba(10, 15, 30, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .multimedia-footer {
+    background: rgba(10, 15, 30, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .mm-card {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.3);
+  }
+
+  .mm-card-inner {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .mm-upload-zone {
+    border: 2px dashed rgba(20, 184, 166, 0.3);
+    transition: all 0.2s ease;
+  }
+
+  .mm-upload-zone:hover {
+    border-color: rgba(20, 184, 166, 0.6);
+    background: rgba(20, 184, 166, 0.05);
+  }
+
+  .mm-input {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .mm-input:focus {
+    border-color: rgba(20, 184, 166, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+  }
 }
 
 @layer utilities {

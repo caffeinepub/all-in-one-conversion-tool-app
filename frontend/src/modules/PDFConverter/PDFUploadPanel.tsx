@@ -21,6 +21,12 @@ export default function PDFUploadPanel({ pdfFiles, isProcessing, onAddPDFs, onRe
     onAddPDFs(pdfs);
   };
 
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   return (
     <div className="space-y-3">
       <div
@@ -57,7 +63,7 @@ export default function PDFUploadPanel({ pdfFiles, isProcessing, onAddPDFs, onRe
               <FileText className="w-5 h-5 text-primary flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{pdf.name}</p>
-                <p className="text-xs text-muted-foreground">{pdf.pageCount} page{pdf.pageCount !== 1 ? 's' : ''}</p>
+                <p className="text-xs text-muted-foreground">{formatSize(pdf.size)}</p>
               </div>
               <Button
                 variant="ghost"

@@ -53,7 +53,7 @@ export function PageManager({ pdfFiles, onRemovePages }: PageManagerProps) {
 
   const selectedFile = pdfFiles.find(f => f.id === selectedFileId);
 
-  const loadThumbnails = async (file: typeof selectedFile) => {
+  const loadThumbnails = async (file: PDFFile | undefined) => {
     if (!file) {
       setThumbs([]);
       setPageOrder([]);
@@ -66,9 +66,7 @@ export function PageManager({ pdfFiles, onRemovePages }: PageManagerProps) {
 
     try {
       const pdfjsLib = await loadPDFJS();
-      const bytes = file.bytes
-        ? file.bytes.slice()
-        : new Uint8Array(await file.file.arrayBuffer());
+      const bytes = new Uint8Array(await file.file.arrayBuffer());
       const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
       const pages: PageThumb[] = [];
 

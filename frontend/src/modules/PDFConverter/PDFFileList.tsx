@@ -1,49 +1,62 @@
-import { useRef, useState } from 'react';
+import React, { useState } from 'react';
+import { FileText, Image, Trash2, Plus, CheckSquare, Square, Download, Loader2, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Upload, X, FileText, Image, Loader2, FilePlus, CheckCircle2 } from 'lucide-react';
-import { toast } from 'sonner';
-import type { PDFFile } from './usePDFOperations';
+import { Checkbox } from '@/components/ui/checkbox';
 
-interface PDFFileListProps {
-  pdfFiles: PDFFile[];
-  isProcessing: boolean;
-  onAddPDFs: (files: File[]) => void;
-  onRemovePDF: (id: string) => void;
-  convertToDownloadable?: () => Promise<void>;
-  isConverting?: boolean;
+interface PDFFile {
+  id: string;
+  name: string;
+  size: number;
+  type: 'pdf' | 'image';
+  file: File;
+  dataUrl?: string;
 }
 
-export default function PDFFileList({
-  pdfFiles,
-  isProcessing,
-  onAddPDFs,
-  onRemovePDF,
-  convertToDownloadable,
-  isConverting,
-}: PDFFileListProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [createSuccess, setCreateSuccess] = useState(false);
+interface PDFFileListProps {
+  files: PDFFile[];
+  onAddFiles: (files: File[]) => void;
+  onRemoveFile: (id: string) => void;
+  onCreatePDF: (selectedIds?: string[]) => Promise<void>;
+  isConverting: boolean;
+}
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    if (files.length > 0) {
-      onAddPDFs(files);
+export default function PDFFileList({ files, onAddFiles, onRemoveFile, onCreatePDF, isConverting }: PDFFileListProps) {
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [success, setSuccess] = useState(false);
+
+  const allSelected = files.length > 0 && selectedIds.size === files.length;
+  const someSelected = selectedIds.size > 0 && selectedIds.size < files.length;
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(files.map(f => f.id)));
     }
-    e.target.value = '';
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const files = Array.from(e.dataTransfer.files).filter(f => {
-      const isPdf = f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf');
-      const isImage = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(f.type)
-        || ['.jpg', '.jpeg', '.png', '.webp'].some(ext => f.name.toLowerCase().endsWith(ext));
-      return isPdf || isImage;
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
-    if (files.length > 0) {
-      onAddPDFs(files);
+  };
+
+  const handleConvert = async () => {
+    setSuccess(false);
+    const idsToConvert = selectedIds.size > 0 ? Array.from(selectedIds) : undefined;
+    await onCreatePDF(idsToConvert);
+    setSuccess(true);
+    setTimeout(() => setSuccess(false), 3000);
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      onAddFiles(Array.from(e.target.files));
     }
+    e.target.value = '';
   };
 
   const formatSize = (bytes: number) => {
@@ -52,133 +65,140 @@ export default function PDFFileList({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const handleCreatePDF = async () => {
-    if (!convertToDownloadable) return;
-    setCreateSuccess(false);
-    try {
-      await convertToDownloadable();
-      setCreateSuccess(true);
-      toast.success('PDF created and downloaded!');
-      setTimeout(() => setCreateSuccess(false), 3000);
-    } catch {
-      toast.error('Failed to create PDF');
-    }
-  };
+  const filesToConvert = selectedIds.size > 0
+    ? files.filter(f => selectedIds.has(f.id))
+    : files;
 
   return (
-    <div className="space-y-4">
-      <p className="section-title">Files</p>
-
-      {/* Drop Zone */}
-      <div
-        className="upload-zone cursor-pointer"
-        onClick={() => fileInputRef.current?.click()}
-        onDrop={handleDrop}
-        onDragOver={e => e.preventDefault()}
-      >
-        {isProcessing ? (
-          <div className="flex flex-col items-center gap-2">
-            <Loader2 className="w-6 h-6 text-primary animate-spin" />
-            <p className="text-sm text-muted-foreground">Loading files...</p>
-          </div>
-        ) : (
-          <>
-            <Upload className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground text-center">
-              Click or drag PDF &amp; image files here
-            </p>
-            <p className="text-xs text-muted-foreground/60 text-center mt-1">
-              Supports PDF, JPG, PNG, WEBP — multiple files
-            </p>
-          </>
-        )}
+    <div className="flex flex-col gap-4">
+      {/* Header controls */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          {files.length > 0 && (
+            <button
+              onClick={toggleSelectAll}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {allSelected ? (
+                <CheckSquare className="w-4 h-4 text-primary" />
+              ) : someSelected ? (
+                <CheckSquare className="w-4 h-4 text-primary opacity-60" />
+              ) : (
+                <Square className="w-4 h-4" />
+              )}
+              <span>{allSelected ? 'Deselect All' : 'Select All'}</span>
+            </button>
+          )}
+          {selectedIds.size > 0 && (
+            <span className="text-xs text-muted-foreground">
+              ({selectedIds.size} selected)
+            </span>
+          )}
+        </div>
+        <label className="cursor-pointer">
+          <input
+            type="file"
+            multiple
+            accept=".pdf,image/*"
+            className="hidden"
+            onChange={handleFileInput}
+          />
+          <span className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors">
+            <Plus className="w-4 h-4" />
+            Add Files
+          </span>
+        </label>
       </div>
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="application/pdf,.pdf,image/jpeg,image/jpg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
-        multiple
-        className="hidden"
-        onChange={handleFileChange}
-      />
-
-      {/* File List */}
-      {pdfFiles.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs text-muted-foreground">{pdfFiles.length} file{pdfFiles.length !== 1 ? 's' : ''} loaded</p>
-          <div className="space-y-1.5 max-h-72 overflow-y-auto scrollbar-thin pr-1">
-            {pdfFiles.map(file => (
+      {/* File list */}
+      {files.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <FileText className="w-12 h-12 text-muted-foreground/40 mb-3" />
+          <p className="text-muted-foreground text-sm">No files added yet</p>
+          <p className="text-muted-foreground/60 text-xs mt-1">Add PDF or image files to convert</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {files.map(file => {
+            const isSelected = selectedIds.has(file.id);
+            return (
               <div
                 key={file.id}
-                className="flex items-center gap-2 p-2 rounded-lg bg-secondary/50 border border-border/50"
+                onClick={() => toggleSelect(file.id)}
+                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                  isSelected
+                    ? 'border-primary/60 bg-primary/10'
+                    : 'border-border bg-card hover:border-primary/30 hover:bg-primary/5'
+                }`}
               >
-                {file.fileType === 'image'
-                  ? <Image className="w-4 h-4 text-accent flex-shrink-0" />
-                  : <FileText className="w-4 h-4 text-primary flex-shrink-0" />
-                }
+                <Checkbox
+                  checked={isSelected}
+                  onCheckedChange={() => toggleSelect(file.id)}
+                  onClick={e => e.stopPropagation()}
+                  className="shrink-0"
+                />
+                <div className={`p-1.5 rounded ${file.type === 'pdf' ? 'bg-red-500/20' : 'bg-blue-500/20'}`}>
+                  {file.type === 'pdf' ? (
+                    <FileText className="w-4 h-4 text-red-400" />
+                  ) : (
+                    <Image className="w-4 h-4 text-blue-400" />
+                  )}
+                </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate">{file.name}</p>
+                  <p className="text-sm font-medium truncate">{file.name}</p>
                   <p className="text-xs text-muted-foreground">{formatSize(file.size)}</p>
                 </div>
-                <Badge
-                  variant={file.fileType === 'pdf' ? 'default' : 'secondary'}
-                  className="text-[10px] px-1.5 py-0 h-4 flex-shrink-0"
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                  file.type === 'pdf' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'
+                }`}>
+                  {file.type.toUpperCase()}
+                </span>
+                <button
+                  onClick={e => { e.stopPropagation(); onRemoveFile(file.id); }}
+                  className="p-1 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
                 >
-                  {file.fileType === 'pdf' ? 'PDF' : 'Image'}
-                </Badge>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 text-destructive hover:text-destructive flex-shrink-0"
-                  onClick={() => onRemovePDF(file.id)}
-                >
-                  <X className="w-3 h-3" />
-                </Button>
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       )}
 
-      {pdfFiles.length === 0 && !isProcessing && (
-        <p className="text-xs text-muted-foreground text-center">
-          No files loaded yet. Upload PDFs or images to get started.
+      {/* Summary */}
+      {files.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {selectedIds.size > 0
+            ? `${selectedIds.size} of ${files.length} file(s) selected for conversion`
+            : `All ${files.length} file(s) will be converted`}
         </p>
       )}
 
-      {/* Create PDF Button */}
-      {convertToDownloadable && (
-        <div className="pt-2 border-t border-border/40">
-          <button
-            onClick={handleCreatePDF}
-            disabled={pdfFiles.length === 0 || isConverting}
-            className="tool-btn w-full flex items-center justify-center gap-2 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-semibold py-3 px-6 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
-          >
-            {isConverting ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Creating PDF…
-              </>
-            ) : createSuccess ? (
-              <>
-                <CheckCircle2 className="w-5 h-5" />
-                PDF Created!
-              </>
-            ) : (
-              <>
-                <FilePlus className="w-5 h-5" />
-                Create PDF
-              </>
-            )}
-          </button>
-          {pdfFiles.length === 0 && (
-            <p className="text-xs text-muted-foreground text-center mt-2">
-              Add files above to create a PDF
-            </p>
-          )}
-        </div>
-      )}
+      {/* Convert button */}
+      <Button
+        onClick={handleConvert}
+        disabled={files.length === 0 || isConverting}
+        className="w-full mt-2"
+        size="lg"
+      >
+        {isConverting ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Converting...
+          </>
+        ) : success ? (
+          <>
+            <CheckCircle className="w-4 h-4 mr-2" />
+            PDF Created!
+          </>
+        ) : (
+          <>
+            <Download className="w-4 h-4 mr-2" />
+            Convert to PDF
+            {selectedIds.size > 0 && ` (${selectedIds.size} file${selectedIds.size > 1 ? 's' : ''})`}
+          </>
+        )}
+      </Button>
     </div>
   );
 }

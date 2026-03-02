@@ -177,11 +177,7 @@ export default function ImageEditor() {
     <div className="animate-slide-up">
       {!originalImage ? (
         <div className="max-w-lg mx-auto py-8">
-          <div className="text-center mb-6">
-            <h2 className="font-display text-2xl font-bold text-foreground mb-2">Image Editor</h2>
-            <p className="text-muted-foreground text-sm">Upload an image to start editing</p>
-          </div>
-          <ImageUploadPanel onImageLoad={loadImage} hasImage={false} />
+          <ImageUploadPanel onImageLoad={loadImage} />
         </div>
       ) : (
         <div className="flex flex-col lg:flex-row gap-4 h-full">
@@ -419,7 +415,7 @@ export default function ImageEditor() {
 
             {/* Upload new image */}
             <div className="mt-4">
-              <ImageUploadPanel onImageLoad={loadImage} hasImage={true} />
+              <ImageUploadPanel onImageLoad={loadImage} />
             </div>
           </div>
         </div>
