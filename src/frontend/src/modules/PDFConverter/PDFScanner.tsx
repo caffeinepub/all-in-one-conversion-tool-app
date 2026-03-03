@@ -927,13 +927,50 @@ export default function PDFScanner() {
           <button
             type="button"
             data-ocid="pdf_scanner.google_lens_button"
-            onClick={() =>
-              window.open(
-                "https://lens.google.com/",
-                "_blank",
-                "noopener,noreferrer",
-              )
-            }
+            onClick={() => {
+              // Try to open the Google Lens app via deep link on Android/iOS.
+              // If the app is installed, the OS will launch it.
+              // Fall back to the web version after a short delay if the app doesn't open.
+              const isMobile = /Android|iPhone|iPad|iPod/i.test(
+                navigator.userAgent,
+              );
+              if (isMobile) {
+                // Android intent URL — opens Google Lens app directly if installed
+                const intentUrl =
+                  "intent://lens.google.com/#Intent;scheme=https;package=com.google.ar.lens;action=android.intent.action.VIEW;end;";
+                // iOS universal link
+                const iosUrl = "googlelens://";
+                const isAndroid = /Android/i.test(navigator.userAgent);
+                const deepLink = isAndroid ? intentUrl : iosUrl;
+
+                // Attempt deep link
+                const start = Date.now();
+                const fallback = setTimeout(() => {
+                  // If less than 2s have passed the app likely didn't open — fall back to web
+                  if (Date.now() - start < 2000) {
+                    window.open(
+                      "https://lens.google.com/",
+                      "_blank",
+                      "noopener,noreferrer",
+                    );
+                  }
+                }, 1500);
+
+                window.location.href = deepLink;
+
+                // Clear fallback if the page blurs (app opened)
+                window.addEventListener("blur", () => clearTimeout(fallback), {
+                  once: true,
+                });
+              } else {
+                // Desktop: open Google Lens web
+                window.open(
+                  "https://lens.google.com/",
+                  "_blank",
+                  "noopener,noreferrer",
+                );
+              }
+            }}
             className="w-full flex items-center justify-center gap-2.5 rounded-xl border border-blue-500/40 bg-blue-500/8 hover:bg-blue-500/15 transition-colors px-4 py-3 text-sm font-medium text-blue-400 hover:text-blue-300"
           >
             {/* Google Lens coloured icon */}
@@ -990,8 +1027,9 @@ export default function PDFScanner() {
             Scan with Google Lens
           </button>
           <p className="text-xs text-muted-foreground text-center mt-1.5">
-            Opens Google Lens — scan your document, then save the image and
-            import it here.
+            On mobile: opens the Google Lens app if installed, otherwise opens
+            Google Lens in your browser. On desktop: opens Google Lens in a new
+            tab. Scan your document, save the image, then import it here.
           </p>
         </div>
 
