@@ -928,46 +928,49 @@ export default function PDFScanner() {
             type="button"
             data-ocid="pdf_scanner.google_lens_button"
             onClick={() => {
-              // Try to open the Google Lens app via deep link on Android/iOS.
-              // If the app is installed, the OS will launch it.
-              // Fall back to the web version after a short delay if the app doesn't open.
-              const isMobile = /Android|iPhone|iPad|iPod/i.test(
-                navigator.userAgent,
-              );
-              if (isMobile) {
-                // Android intent URL — opens Google Lens app directly if installed
+              const isAndroid = /Android/i.test(navigator.userAgent);
+              const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+              if (isAndroid) {
+                // Try to open Google Lens app via Android intent
                 const intentUrl =
-                  "intent://lens.google.com/#Intent;scheme=https;package=com.google.ar.lens;action=android.intent.action.VIEW;end;";
-                // iOS universal link
+                  "intent://lens.google.com/search?ep=gsbubb&re=df&p=1#Intent;scheme=https;package=com.google.ar.lens;action=android.intent.action.VIEW;end;";
+                const fallbackTimer = setTimeout(() => {
+                  // Fallback: open in a popup window
+                  window.open(
+                    "https://lens.google.com",
+                    "GoogleLens",
+                    "width=500,height=700,menubar=no,toolbar=no,location=yes,status=no,resizable=yes,scrollbars=yes",
+                  );
+                }, 2000);
+                window.location.href = intentUrl;
+                window.addEventListener(
+                  "blur",
+                  () => clearTimeout(fallbackTimer),
+                  { once: true },
+                );
+              } else if (isIOS) {
+                // Try iOS Google Lens app
                 const iosUrl = "googlelens://";
-                const isAndroid = /Android/i.test(navigator.userAgent);
-                const deepLink = isAndroid ? intentUrl : iosUrl;
-
-                // Attempt deep link
-                const start = Date.now();
-                const fallback = setTimeout(() => {
-                  // If less than 2s have passed the app likely didn't open — fall back to web
-                  if (Date.now() - start < 2000) {
-                    window.open(
-                      "https://lens.google.com/",
-                      "_blank",
-                      "noopener,noreferrer",
-                    );
-                  }
-                }, 1500);
-
-                window.location.href = deepLink;
-
-                // Clear fallback if the page blurs (app opened)
-                window.addEventListener("blur", () => clearTimeout(fallback), {
-                  once: true,
-                });
+                const fallbackTimer = setTimeout(() => {
+                  window.open(
+                    "https://lens.google.com",
+                    "GoogleLens",
+                    "width=500,height=700,menubar=no,toolbar=no,location=yes,status=no,resizable=yes,scrollbars=yes",
+                  );
+                }, 2000);
+                window.location.href = iosUrl;
+                window.addEventListener(
+                  "blur",
+                  () => clearTimeout(fallbackTimer),
+                  { once: true },
+                );
               } else {
-                // Desktop: open Google Lens web
+                // Desktop: open as popup window
                 window.open(
-                  "https://lens.google.com/",
-                  "_blank",
-                  "noopener,noreferrer",
+                  "https://lens.google.com",
+                  "GoogleLens",
+                  "width=600,height=800,menubar=no,toolbar=no,location=yes,status=no,resizable=yes,scrollbars=yes",
                 );
               }
             }}
@@ -1027,9 +1030,10 @@ export default function PDFScanner() {
             Scan with Google Lens
           </button>
           <p className="text-xs text-muted-foreground text-center mt-1.5">
-            On mobile: opens the Google Lens app if installed, otherwise opens
-            Google Lens in your browser. On desktop: opens Google Lens in a new
-            tab. Scan your document, save the image, then import it here.
+            On mobile: tries to open the Google Lens app directly. If not
+            installed, opens Google Lens in a popup window with camera and
+            gallery access. On desktop: opens Google Lens in a popup window —
+            you can use your camera or upload a photo.
           </p>
         </div>
 
