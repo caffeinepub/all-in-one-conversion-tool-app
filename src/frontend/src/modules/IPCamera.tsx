@@ -131,6 +131,35 @@ export default function IPCamera() {
         </Alert>
       )}
 
+      {/* Permission info card — shown before camera is started */}
+      {!isActive && !isLoading && (
+        <div className="mm-card p-5">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-teal-500/15 shrink-0">
+              <Camera className="w-4 h-4 text-teal-400" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <p className="text-sm font-semibold text-gray-300">
+                Camera Access Required
+              </p>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                IP Camera uses your device camera to stream a live feed. When
+                you tap <strong className="text-gray-400">Start IP Cam</strong>,
+                your browser will ask for camera permission. Tap{" "}
+                <strong className="text-gray-400">Allow</strong> to grant
+                access.
+              </p>
+              {error?.type === "permission" && (
+                <p className="text-xs text-red-400 mt-1 leading-relaxed">
+                  Access was denied. Go to your browser or system settings →
+                  Camera and allow this site, then refresh the page.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Camera Preview */}
       <div className="mm-card p-6 space-y-4">
         <div

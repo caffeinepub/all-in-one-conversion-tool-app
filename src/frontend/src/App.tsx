@@ -4,6 +4,9 @@ import { useState } from "react";
 import MultimediaApp from "./MultimediaApp";
 import Footer from "./components/Footer";
 import Header from "./components/Header";
+import PermissionOnboarding, {
+  usePermissionOnboarding,
+} from "./components/PermissionOnboarding";
 import TabNavigation from "./components/TabNavigation";
 import BackgroundRemover from "./modules/BackgroundRemover";
 import { ImageConverter } from "./modules/ImageConverter";
@@ -19,8 +22,10 @@ export type TabId =
   | "bg-remover";
 
 function AppContent() {
-  const [activeTab, setActiveTab] = useState<TabId>("image-editor");
+  const [activeTab, setActiveTab] = useState<TabId>("pdf-converter");
   const [showMultimedia, setShowMultimedia] = useState(false);
+  const { show: showPermissions, dismiss: dismissPermissions } =
+    usePermissionOnboarding();
 
   if (showMultimedia) {
     return <MultimediaApp onBack={() => setShowMultimedia(false)} />;
@@ -28,6 +33,7 @@ function AppContent() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      {showPermissions && <PermissionOnboarding onDone={dismissPermissions} />}
       <Header onOpenMultimedia={() => setShowMultimedia(true)} />
       <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
       <main className="flex-1 container mx-auto px-4 py-6 max-w-7xl">

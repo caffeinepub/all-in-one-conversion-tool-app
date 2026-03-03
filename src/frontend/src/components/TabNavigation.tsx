@@ -10,16 +10,16 @@ interface Tab {
 
 const tabs: Tab[] = [
   {
-    id: "image-editor",
-    label: "Image Editor",
-    icon: <Image className="w-4 h-4" />,
-    description: "Edit, crop, filter & export",
-  },
-  {
     id: "pdf-converter",
     label: "PDF Converter",
     icon: <FileText className="w-4 h-4" />,
     description: "Merge, split & create PDFs",
+  },
+  {
+    id: "image-editor",
+    label: "Image Editor",
+    icon: <Image className="w-4 h-4" />,
+    description: "Edit, crop, filter & export",
   },
   {
     id: "image-converter",
