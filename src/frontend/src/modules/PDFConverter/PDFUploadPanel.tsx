@@ -1,0 +1,99 @@
+import { Button } from "@/components/ui/button";
+import { FileText, Loader2, Upload, X } from "lucide-react";
+import { useRef, useState } from "react";
+import type { PDFFile } from "./usePDFOperations";
+
+interface PDFUploadPanelProps {
+  pdfFiles: PDFFile[];
+  isProcessing: boolean;
+  onAddPDFs: (files: File[]) => void;
+  onRemovePDF: (id: string) => void;
+}
+
+export default function PDFUploadPanel({
+  pdfFiles,
+  isProcessing,
+  onAddPDFs,
+  onRemovePDF,
+}: PDFUploadPanelProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleFiles = (files: FileList | null) => {
+    if (!files) return;
+    const pdfs = Array.from(files).filter((f) => f.type === "application/pdf");
+    if (pdfs.length === 0) return;
+    onAddPDFs(pdfs);
+  };
+
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  return (
+    <div className="space-y-3">
+      <label
+        className={`upload-zone block cursor-pointer ${isDragging ? "upload-zone-active" : ""}`}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragging(true);
+        }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragging(false);
+          handleFiles(e.dataTransfer.files);
+        }}
+      >
+        {isProcessing ? (
+          <Loader2 className="w-8 h-8 mx-auto mb-2 text-primary animate-spin" />
+        ) : (
+          <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+        )}
+        <p className="font-medium text-sm text-foreground">
+          {isProcessing ? "Loading PDFs..." : "Drop PDF files here"}
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          or click to browse · Multiple files supported
+        </p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/pdf"
+          multiple
+          className="hidden"
+          onChange={(e) => handleFiles(e.target.files)}
+        />
+      </label>
+
+      {pdfFiles.length > 0 && (
+        <div className="space-y-2">
+          {pdfFiles.map((pdf) => (
+            <div
+              key={pdf.id}
+              className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 border border-border/50"
+            >
+              <FileText className="w-5 h-5 text-primary flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{pdf.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatSize(pdf.size)}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                onClick={() => onRemovePDF(pdf.id)}
+              >
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
