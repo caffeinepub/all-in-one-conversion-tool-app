@@ -3,21 +3,25 @@ import { Toaster } from "@/components/ui/sonner";
 import {
   ArrowLeft,
   Camera,
+  Cctv,
   Download,
   Film,
   Moon,
   Music,
   Sun,
   Tv,
+  Type,
   Video,
   Zap,
 } from "lucide-react";
 import { Heart } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState } from "react";
+import CCTVCam from "./modules/CCTVCam";
 import IPCamera from "./modules/IPCamera";
 import IPTVPlayer from "./modules/IPTVPlayer";
 import MP3Cutter from "./modules/MP3Cutter";
+import TextFormatConverter from "./modules/TextFormatConverter";
 import VideoClips from "./modules/VideoClips";
 import VideoCutter from "./modules/VideoCutter";
 import VideoDownloaderMultimedia from "./modules/VideoDownloaderMultimedia";
@@ -28,7 +32,9 @@ export type MultimediaTabId =
   | "video-downloader"
   | "ip-camera"
   | "video-clips"
-  | "iptv-player";
+  | "iptv-player"
+  | "cctv-cam"
+  | "text-converter";
 
 interface MultimediaTab {
   id: MultimediaTabId;
@@ -73,6 +79,18 @@ const tabs: MultimediaTab[] = [
     label: "IPTV Player",
     icon: <Tv className="w-4 h-4" />,
     description: "Free IPTV streams",
+  },
+  {
+    id: "cctv-cam",
+    label: "CCTV CAM",
+    icon: <Cctv className="w-4 h-4" />,
+    description: "Live CCTV viewer",
+  },
+  {
+    id: "text-converter",
+    label: "Text Converter",
+    icon: <Type className="w-4 h-4" />,
+    description: "Krutidev ↔ Unicode",
   },
 ];
 
@@ -181,6 +199,8 @@ export default function MultimediaApp({ onBack }: MultimediaAppProps) {
           {activeTab === "ip-camera" && <IPCamera />}
           {activeTab === "video-clips" && <VideoClips />}
           {activeTab === "iptv-player" && <IPTVPlayer />}
+          {activeTab === "cctv-cam" && <CCTVCam />}
+          {activeTab === "text-converter" && <TextFormatConverter />}
         </div>
       </main>
 
