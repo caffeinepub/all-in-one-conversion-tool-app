@@ -1,12 +1,12 @@
 import { Toaster } from "@/components/ui/sonner";
-import { Camera, Film, Music, Tv, Type, Video } from "lucide-react";
+import { Camera, Film, Languages, Music, Tv, Video } from "lucide-react";
 import { Heart } from "lucide-react";
 import { useState } from "react";
 import Header from "./components/Header";
 import IPCamera from "./modules/IPCamera";
 import IPTVPlayer from "./modules/IPTVPlayer";
 import MP3Cutter from "./modules/MP3Cutter";
-import TextFormatConverter from "./modules/TextFormatConverter";
+import TextMagic from "./modules/TextMagic";
 import VideoClips from "./modules/VideoClips";
 import VideoCutter from "./modules/VideoCutter";
 
@@ -16,7 +16,7 @@ export type MultimediaTabId =
   | "ip-camera"
   | "video-clips"
   | "iptv-player"
-  | "text-converter";
+  | "text-magic";
 
 interface MultimediaTab {
   id: MultimediaTabId;
@@ -57,10 +57,10 @@ const tabs: MultimediaTab[] = [
     description: "Free IPTV streams",
   },
   {
-    id: "text-converter",
-    label: "Text Converter",
-    icon: <Type className="w-4 h-4" />,
-    description: "Krutidev ↔ Unicode",
+    id: "text-magic",
+    label: "Text Magic",
+    icon: <Languages className="w-4 h-4" />,
+    description: "Translate & convert text",
   },
 ];
 
@@ -131,7 +131,7 @@ export default function MultimediaApp({
           {activeTab === "ip-camera" && <IPCamera />}
           {activeTab === "video-clips" && <VideoClips />}
           {activeTab === "iptv-player" && <IPTVPlayer />}
-          {activeTab === "text-converter" && <TextFormatConverter />}
+          {activeTab === "text-magic" && <TextMagic />}
         </div>
       </main>
 
