@@ -11,15 +11,9 @@ interface Tab {
 const tabs: Tab[] = [
   {
     id: "pdf-converter",
-    label: "PDF Converter",
+    label: "PDF Scanner",
     icon: <FileText className="w-4 h-4" />,
     description: "Merge, split & create PDFs",
-  },
-  {
-    id: "image-editor",
-    label: "Image Editor",
-    icon: <Image className="w-4 h-4" />,
-    description: "Edit, crop, filter & export",
   },
   {
     id: "image-converter",
@@ -28,16 +22,22 @@ const tabs: Tab[] = [
     description: "Convert & batch process",
   },
   {
-    id: "passport-photo",
-    label: "Passport Photo",
-    icon: <CreditCard className="w-4 h-4" />,
-    description: "Create passport size photos",
+    id: "image-editor",
+    label: "Image Editor",
+    icon: <Image className="w-4 h-4" />,
+    description: "Edit, crop, filter & export",
   },
   {
     id: "bg-remover",
     label: "BG Remover",
     icon: <Scissors className="w-4 h-4" />,
     description: "Remove image backgrounds",
+  },
+  {
+    id: "passport-photo",
+    label: "Passport Photo",
+    icon: <CreditCard className="w-4 h-4" />,
+    description: "Create passport size photos",
   },
 ];
 

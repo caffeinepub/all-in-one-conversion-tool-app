@@ -381,15 +381,15 @@ function LiveCameraWindow({
   const [isStarting, setIsStarting] = useState(true);
   const [flashEffect, setFlashEffect] = useState(false);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+  const [lastCapturedUrl, setLastCapturedUrl] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  // Use a ref so the effect can re-run when retry is triggered without biome exhaustive-deps issues
+  const retryCountRef = useRef(0);
 
   useEffect(() => {
+    // Keep ref in sync so startCamera can read the latest value if needed
+    retryCountRef.current = retryCount;
     let cancelled = false;
-
-    async function tryGetStream(
-      constraints: MediaStreamConstraints,
-    ): Promise<MediaStream> {
-      return navigator.mediaDevices.getUserMedia(constraints);
-    }
 
     async function startCamera() {
       setIsStarting(true);
@@ -401,8 +401,9 @@ function LiveCameraWindow({
         streamRef.current = null;
       }
 
-      // Check if mediaDevices API is available at all
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      // Ensure mediaDevices API is available (requires HTTPS or localhost)
+      const md = navigator.mediaDevices;
+      if (!md || !md.getUserMedia) {
         if (!cancelled) {
           setCameraError(
             "Camera API is not supported in this browser. Please use Chrome, Firefox, or Safari on a modern device, or use 'Choose from Files' to import images.",
@@ -414,23 +415,29 @@ function LiveCameraWindow({
 
       let stream: MediaStream | null = null;
 
-      // Try a progressive fallback chain for maximum device compatibility
+      // Progressive fallback chain — most specific → least specific
       const constraintChain: MediaStreamConstraints[] = [
-        // 1. Preferred: specific facing mode + ideal resolution
+        // 1. Ideal facing mode + high resolution
         {
           video: {
             facingMode: { ideal: facingMode },
-            width: { ideal: 1920, max: 4096 },
-            height: { ideal: 1080, max: 4096 },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
           },
           audio: false,
         },
-        // 2. Exact facing mode, no resolution hint
+        // 2. Ideal facing mode only
+        { video: { facingMode: { ideal: facingMode } }, audio: false },
+        // 3. Opposite facing mode (handles single-camera devices)
         {
-          video: { facingMode: { ideal: facingMode } },
+          video: {
+            facingMode: {
+              ideal: facingMode === "user" ? "environment" : "user",
+            },
+          },
           audio: false,
         },
-        // 3. Any video — no constraints at all
+        // 4. Bare minimum — any camera
         { video: true, audio: false },
       ];
 
@@ -438,16 +445,15 @@ function LiveCameraWindow({
       for (const constraints of constraintChain) {
         if (cancelled) return;
         try {
-          stream = await tryGetStream(constraints);
-          break; // success — stop trying
+          stream = await md.getUserMedia(constraints);
+          break;
         } catch (err: any) {
           lastError = err;
-          // Permission denied — no point trying further
           if (
             err.name === "NotAllowedError" ||
             err.name === "PermissionDeniedError"
           ) {
-            break;
+            break; // permission denied — no point retrying
           }
         }
       }
@@ -464,7 +470,7 @@ function LiveCameraWindow({
           err?.name === "PermissionDeniedError"
         ) {
           setCameraError(
-            "Camera access denied. Please allow camera access:\n• On Android/iOS: go to Settings → Browser → Camera and set to Allow.\n• On desktop: click the camera/lock icon in your browser's address bar and allow, then refresh the page.",
+            "Camera access denied. Please allow camera access:\n• Android/iOS: Settings → Browser → Camera → Allow\n• Desktop: click the camera icon in the address bar, allow, then refresh.",
           );
         } else if (
           err?.name === "NotFoundError" ||
@@ -478,11 +484,11 @@ function LiveCameraWindow({
           err?.name === "TrackStartError"
         ) {
           setCameraError(
-            "Camera is in use by another app. Please close other apps using the camera, then try again.",
+            "Camera is in use by another app. Close other apps using the camera, then try again.",
           );
         } else {
           setCameraError(
-            `Could not start camera: ${err?.message || err?.name || "Unknown error"}.\nTry refreshing the page or use 'Choose from Files' to import images.`,
+            `Could not start camera: ${err?.message || err?.name || "Unknown error"}.\nTry refreshing the page or use 'Choose from Files'.`,
           );
         }
         setIsStarting(false);
@@ -490,15 +496,38 @@ function LiveCameraWindow({
       }
 
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+
+      const video = videoRef.current;
+      if (video) {
+        // Assign srcObject and wait for metadata before marking ready
+        video.srcObject = stream;
+        video.muted = true;
+        video.playsInline = true;
+
+        await new Promise<void>((resolve) => {
+          const onReady = () => {
+            video.removeEventListener("loadedmetadata", onReady);
+            video.removeEventListener("loadeddata", onReady);
+            resolve();
+          };
+          video.addEventListener("loadedmetadata", onReady);
+          video.addEventListener("loadeddata", onReady);
+          // Fallback in case events already fired
+          if (video.readyState >= 1) resolve();
+        });
+
         try {
-          await videoRef.current.play();
+          await video.play();
+          // Mark ready immediately after play resolves successfully
+          if (!cancelled) setIsStarting(false);
         } catch (playErr: any) {
-          // Autoplay blocked — the video may still display with muted+playsInline
-          console.warn("Video autoplay warning:", playErr?.message);
+          // Autoplay may be blocked — video will still show once user interacts
+          console.warn("Video play() warning:", playErr?.message);
+          if (!cancelled) setIsStarting(false);
         }
+        return; // already set isStarting=false above
       }
+
       if (!cancelled) setIsStarting(false);
     }
 
@@ -510,8 +539,11 @@ function LiveCameraWindow({
         for (const track of streamRef.current.getTracks()) track.stop();
         streamRef.current = null;
       }
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
     };
-  }, [facingMode]);
+  }, [facingMode, retryCount]);
 
   const handleCapture = useCallback(() => {
     const video = videoRef.current;
@@ -524,8 +556,15 @@ function LiveCameraWindow({
 
     // If video dimensions are zero, try rendered dimensions as fallback
     if (!w || !h) {
-      w = video.clientWidth || 640;
-      h = video.clientHeight || 480;
+      w = video.clientWidth || 0;
+      h = video.clientHeight || 0;
+    }
+
+    // Final fallback: use bounding rect (works when clientWidth/Height are also 0)
+    if (!w || !h) {
+      const rect = video.getBoundingClientRect();
+      w = Math.round(rect.width) || 640;
+      h = Math.round(rect.height) || 480;
     }
 
     canvas.width = w;
@@ -538,6 +577,7 @@ function LiveCameraWindow({
     setFlashEffect(true);
     setTimeout(() => setFlashEffect(false), 200);
 
+    setLastCapturedUrl(dataUrl);
     onCapture(dataUrl);
   }, [onCapture]);
 
@@ -605,18 +645,33 @@ function LiveCameraWindow({
                   {cameraError}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() =>
-                  setFacingMode((prev) =>
-                    prev === "user" ? "environment" : "user",
-                  )
-                }
-                className="flex items-center gap-1.5 text-teal-400 hover:text-teal-300 text-xs border border-teal-600/40 px-3 py-1.5 rounded-lg hover:bg-teal-600/10 transition-colors"
-              >
-                <FlipHorizontal className="w-3.5 h-3.5" />
-                Try other camera
-              </button>
+              <div className="flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  data-ocid="camera_window.retry_button"
+                  onClick={() => {
+                    setCameraError(null);
+                    setIsStarting(true);
+                    setRetryCount((c) => c + 1);
+                  }}
+                  className="flex items-center gap-1.5 text-white bg-teal-600 hover:bg-teal-700 text-xs px-4 py-2 rounded-lg transition-colors font-medium"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  Retry Camera
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFacingMode((prev) =>
+                      prev === "user" ? "environment" : "user",
+                    )
+                  }
+                  className="flex items-center gap-1.5 text-teal-400 hover:text-teal-300 text-xs border border-teal-600/40 px-3 py-1.5 rounded-lg hover:bg-teal-600/10 transition-colors"
+                >
+                  <FlipHorizontal className="w-3.5 h-3.5" />
+                  Try other camera
+                </button>
+              </div>
             </div>
           )}
 
@@ -629,16 +684,16 @@ function LiveCameraWindow({
           <video
             ref={videoRef}
             className={`w-full object-contain ${isStarting || cameraError ? "invisible" : "visible"}`}
+            style={{ maxHeight: "60vh" }}
             autoPlay
             playsInline
             muted
             // Required for iOS Safari autoplay
             {...({ "webkit-playsinline": "true" } as any)}
-            style={{ maxHeight: "60vh", display: "block" }}
           />
 
           {/* Document guide overlay */}
-          {!isStarting && !cameraError && (
+          {!isStarting && !cameraError && !lastCapturedUrl && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div
                 className="border-2 border-teal-400/60 rounded-lg"
@@ -657,6 +712,41 @@ function LiveCameraWindow({
               </div>
             </div>
           )}
+
+          {/* Post-capture review overlay */}
+          {lastCapturedUrl && (
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-black/85 p-4">
+              <div className="flex items-center gap-2 text-teal-400 text-sm font-semibold">
+                <span className="w-2 h-2 rounded-full bg-teal-400 inline-block" />
+                Page {captureCount} captured!
+              </div>
+              <img
+                src={lastCapturedUrl}
+                alt="Last captured page"
+                className="max-h-48 max-w-[80%] object-contain rounded-lg border-2 border-teal-500/50 shadow-xl"
+              />
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => setLastCapturedUrl(null)}
+                  data-ocid="camera_window.scan_next_button"
+                  className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white border-0 px-5"
+                  size="lg"
+                >
+                  <Camera className="w-4 h-4" />
+                  Scan Next Page
+                </Button>
+                <Button
+                  onClick={onClose}
+                  variant="outline"
+                  data-ocid="camera_window.finish_button"
+                  size="lg"
+                  className="border-zinc-500 text-zinc-200 hover:bg-zinc-700 px-5"
+                >
+                  Done ({captureCount} pages)
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Hidden canvas for capture */}
@@ -664,16 +754,22 @@ function LiveCameraWindow({
 
         {/* Controls */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-4 bg-zinc-800">
-          <p className="text-xs text-zinc-400 text-center sm:text-left">
-            Position the document within the frame, then tap{" "}
-            <strong className="text-white">Scan & Capture</strong>
-          </p>
+          {lastCapturedUrl ? (
+            <p className="text-xs text-teal-400 text-center sm:text-left font-medium">
+              Review captured page above, then scan next or finish.
+            </p>
+          ) : (
+            <p className="text-xs text-zinc-400 text-center sm:text-left">
+              Position the document within the frame, then tap{" "}
+              <strong className="text-white">Scan & Capture</strong>
+            </p>
+          )}
           <div className="flex gap-2 shrink-0">
             <Button
               onClick={handleCapture}
-              disabled={!!isStarting || !!cameraError}
+              disabled={!!isStarting || !!cameraError || !!lastCapturedUrl}
               data-ocid="camera_window.capture_button"
-              className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white border-0 px-6"
+              className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white border-0 px-6 disabled:opacity-40"
               size="lg"
             >
               <Camera className="w-5 h-5" />

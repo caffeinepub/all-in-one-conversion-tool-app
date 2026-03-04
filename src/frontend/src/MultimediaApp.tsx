@@ -1,9 +1,8 @@
 import { Toaster } from "@/components/ui/sonner";
-import { Camera, Film, Languages, Music, Tv, Video } from "lucide-react";
+import { Film, Languages, Music, Tv, Video } from "lucide-react";
 import { Heart } from "lucide-react";
 import { useState } from "react";
 import Header from "./components/Header";
-import IPCamera from "./modules/IPCamera";
 import IPTVPlayer from "./modules/IPTVPlayer";
 import MP3Cutter from "./modules/MP3Cutter";
 import TextMagic from "./modules/TextMagic";
@@ -13,7 +12,6 @@ import VideoCutter from "./modules/VideoCutter";
 export type MultimediaTabId =
   | "mp3-cutter"
   | "video-cutter"
-  | "ip-camera"
   | "video-clips"
   | "iptv-player"
   | "text-magic";
@@ -27,22 +25,10 @@ interface MultimediaTab {
 
 const tabs: MultimediaTab[] = [
   {
-    id: "mp3-cutter",
-    label: "MP3 Cutter",
-    icon: <Music className="w-4 h-4" />,
-    description: "Trim & export audio",
-  },
-  {
-    id: "video-cutter",
-    label: "Video Cutter",
-    icon: <Video className="w-4 h-4" />,
-    description: "Trim video clips",
-  },
-  {
-    id: "ip-camera",
-    label: "IP Camera",
-    icon: <Camera className="w-4 h-4" />,
-    description: "Live camera stream",
+    id: "iptv-player",
+    label: "IPTV Player",
+    icon: <Tv className="w-4 h-4" />,
+    description: "Free IPTV streams",
   },
   {
     id: "video-clips",
@@ -51,10 +37,16 @@ const tabs: MultimediaTab[] = [
     description: "Merge & download clips",
   },
   {
-    id: "iptv-player",
-    label: "IPTV Player",
-    icon: <Tv className="w-4 h-4" />,
-    description: "Free IPTV streams",
+    id: "video-cutter",
+    label: "Video Cutter",
+    icon: <Video className="w-4 h-4" />,
+    description: "Trim video clips",
+  },
+  {
+    id: "mp3-cutter",
+    label: "MP3 Cutter",
+    icon: <Music className="w-4 h-4" />,
+    description: "Trim & export audio",
   },
   {
     id: "text-magic",
@@ -73,7 +65,7 @@ export default function MultimediaApp({
   onBack,
   onOpenConvertAll,
 }: MultimediaAppProps) {
-  const [activeTab, setActiveTab] = useState<MultimediaTabId>("mp3-cutter");
+  const [activeTab, setActiveTab] = useState<MultimediaTabId>("iptv-player");
 
   const hostname =
     typeof window !== "undefined" ? window.location.hostname : "unknown-app";
@@ -128,7 +120,6 @@ export default function MultimediaApp({
         <div className="animate-fade-in">
           {activeTab === "mp3-cutter" && <MP3Cutter />}
           {activeTab === "video-cutter" && <VideoCutter />}
-          {activeTab === "ip-camera" && <IPCamera />}
           {activeTab === "video-clips" && <VideoClips />}
           {activeTab === "iptv-player" && <IPTVPlayer />}
           {activeTab === "text-magic" && <TextMagic />}
