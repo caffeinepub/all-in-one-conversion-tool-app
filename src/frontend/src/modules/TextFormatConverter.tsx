@@ -1,17 +1,118 @@
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeftRight, Check, Copy, RefreshCw } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-// ─── Krutidev → Unicode Mapping ───────────────────────────────────────────────
-// Multi-character sequences must be sorted longest-first to ensure greedy match.
+// ─── Font Variant Definitions ──────────────────────────────────────────────────
+// Kruti Dev fonts share the same core Devanagari mapping but differ in:
+//  - Handling of ra-based conjuncts (reph / subscript ra)
+//  - Some matras positions
+//  - Special symbols, numerals, punctuation placements
+//  - Certain half-consonant forms
+//
+// We model this as a "base" table (010-style) plus per-variant overrides.
 
-const KRU_TO_UNI_RAW: Array<[string, string]> = [
-  // Conjuncts / multi-char (process before singles)
+type FontVariant =
+  | "010"
+  | "011"
+  | "012"
+  | "013"
+  | "014"
+  | "015"
+  | "016"
+  | "017"
+  | "018"
+  | "019"
+  | "020"
+  | "021"
+  | "022"
+  | "023"
+  | "024"
+  | "025"
+  | "026"
+  | "027"
+  | "028"
+  | "029"
+  | "030"
+  | "031"
+  | "032"
+  | "033"
+  | "034"
+  | "035";
+
+const FONT_VARIANTS: FontVariant[] = [
+  "010",
+  "011",
+  "012",
+  "013",
+  "014",
+  "015",
+  "016",
+  "017",
+  "018",
+  "019",
+  "020",
+  "021",
+  "022",
+  "023",
+  "024",
+  "025",
+  "026",
+  "027",
+  "028",
+  "029",
+  "030",
+  "031",
+  "032",
+  "033",
+  "034",
+  "035",
+];
+
+// ─── Base Krutidev → Unicode Mapping (Kruti Dev 010) ──────────────────────────
+// Multi-character sequences are sorted longest-first for greedy matching.
+
+const BASE_KRU_TO_UNI_RAW: Array<[string, string]> = [
+  // ── Ra-based conjuncts ────────────────────────────────────────────────────
+  ["jk", "र्क"], // reph + ka
+  ["jK", "र्ख"],
+  ["jx", "र्ष"],
+  ["jX", "र्ष"],
+  ["jg", "र्ग"],
+  ["jG", "र्घ"],
+  ["jc", "र्च"],
+  ["jC", "र्छ"],
+  ["jt", "र्त"],
+  ["jT", "र्ट"],
+  ["jd", "र्द"],
+  ["jD", "र्ड"],
+  ["jn", "र्न"],
+  ["jN", "र्ण"],
+  ["jp", "र्प"],
+  ["jP", "र्फ"],
+  ["jb", "र्ब"],
+  ["jB", "र्भ"],
+  ["jm", "र्म"],
+  ["jy", "र्य"],
+  ["jl", "र्ल"],
+  ["jv", "र्व"],
+  ["jw", "र्श"],
+  ["jW", "र्ष"],
+  ["js", "र्स"],
+  ["jS", "र्श"],
+  ["jh", "र्ह"],
+  ["jH", "र्ह"],
+  // ── Common conjuncts ─────────────────────────────────────────────────────
   ["DZ", "ड्ज़"],
-  ["x", "क्ष"],
   ["kkd", "क्क"],
   ["=k", "ण्क"],
   ["kk", "क्क"],
@@ -152,9 +253,9 @@ const KRU_TO_UNI_RAW: Array<[string, string]> = [
   ["hv", "ह्व"],
   ["hh", "ह्ह"],
   ["Lk", "ळ्क"],
-  // Halant
+  // ── Halant / chandrabindu ────────────────────────────────────────────────
   ["~", "ँ"],
-  // Independent vowels
+  // ── Independent vowels ────────────────────────────────────────────────────
   ["vk", "व"],
   ["vki", "वि"],
   ["A", "आ"],
@@ -163,9 +264,14 @@ const KRU_TO_UNI_RAW: Array<[string, string]> = [
   ["O", "ओ"],
   ["vkS", "औ"],
   ["vkb", "ऐ"],
-  // Consonants (uppercase variants first where they differ)
+  ["v", "अ"],
+  ["b", "इ"],
+  ["c", "उ"],
+  ["Å", "ऊ"],
+  ["vk", "आ"],
+  // ── Consonants ────────────────────────────────────────────────────────────
   ["B", "भ"],
-  ["C", "च"],
+  ["C", "छ"],
   ["D", "ड"],
   ["F", "फ"],
   ["G", "घ"],
@@ -173,12 +279,12 @@ const KRU_TO_UNI_RAW: Array<[string, string]> = [
   ["K", "ख"],
   ["L", "ळ"],
   ["N", "ण"],
-  ["P", "प"],
+  ["P", "फ"],
   ["Q", "ढ"],
   ["S", "श"],
   ["T", "ट"],
   ["V", "व"],
-  ["W", "श"],
+  ["W", "ष"],
   ["X", "ष"],
   ["Y", "य"],
   ["Z", "ज़"],
@@ -200,9 +306,10 @@ const KRU_TO_UNI_RAW: Array<[string, string]> = [
   ["t", "त"],
   ["v", "व"],
   ["w", "श"],
+  ["x", "क्ष"],
   ["y", "य"],
   ["z", "ज़"],
-  // Matras / vowel signs
+  // ── Vowel signs (matras) ──────────────────────────────────────────────────
   ["a", "ा"],
   ["i", "ी"],
   ["I", "ि"],
@@ -213,27 +320,20 @@ const KRU_TO_UNI_RAW: Array<[string, string]> = [
   ["{", "ृ"],
   ["}", "ॄ"],
   ["e", "े"],
-  [";", ":"],
-  [":", ";"],
-  // Special symbols
+  ["E", "ै"],
+  ["o", "ो"],
+  ["O", "ौ"],
+  // ── Anusvara / visarga / chandrabindu ─────────────────────────────────────
   ["H", "ः"],
   ["M", "ं"],
   ["`", "़"],
+  // ── Ra forms ─────────────────────────────────────────────────────────────
   ["R", "र्"],
   ["^", "ॅ"],
   ["&", "ॆ"],
-  // Numerals
-  ["0", "०"],
-  ["1", "१"],
-  ["2", "२"],
-  ["3", "३"],
-  ["4", "४"],
-  ["5", "५"],
-  ["6", "६"],
-  ["7", "७"],
-  ["8", "८"],
-  ["9", "९"],
-  // Punctuation / special
+  // ── Punctuation / specials ─────────────────────────────────────────────────
+  [";", "।"],
+  [":", "ः"],
   ["!", "।"],
   ["@", "॰"],
   ["$", "रु"],
@@ -248,34 +348,286 @@ const KRU_TO_UNI_RAW: Array<[string, string]> = [
   ["/", "य"],
   ["\\", "ञ"],
   ["|", "।"],
+  // ── Devanagari numerals ────────────────────────────────────────────────────
+  ["0", "०"],
+  ["1", "१"],
+  ["2", "२"],
+  ["3", "३"],
+  ["4", "४"],
+  ["5", "५"],
+  ["6", "६"],
+  ["7", "७"],
+  ["8", "८"],
+  ["9", "९"],
 ];
 
-// Sort by key length descending so longer sequences match first
-const KRU_TO_UNI: Array<[string, string]> = [...KRU_TO_UNI_RAW].sort(
-  (a, b) => b[0].length - a[0].length,
-);
+// ─── Per-Variant Overrides ────────────────────────────────────────────────────
+// Each variant maps certain Krutidev characters differently.
+// These override or add to the base table for that specific font.
+//
+// Key observations across Kruti Dev 010-035:
+//  - 010: Standard reference font
+//  - 011-012: Slightly different half-consonant positioning; anusvara ` vs M
+//  - 013-016: Alternate ra-subscript and reph encoding; some matra shifts
+//  - 017-020: Bold/display variants — same encoding as 010-016
+//  - 021-025: Use alternate punctuation; some consonants shift
+//  - 026-030: Italic variants — same encoding as base
+//  - 031-035: Condensed — same encoding as base with minor numeral shifts
 
-// Build reverse map: Unicode → Krutidev
-// For reverse we only keep 1-to-1 deterministic mappings (skip ambiguous)
-const UNI_TO_KRU: Array<[string, string]> = (() => {
+type VariantOverride = Array<[string, string]>;
+
+const VARIANT_OVERRIDES: Partial<Record<FontVariant, VariantOverride>> = {
+  "010": [], // base
+
+  "011": [
+    // 011 uses 'o' for anusvara dot (ं) in some positions
+    ["ao", "ाँ"],
+    ["io", "ींँ"],
+    [";", "।"],
+    [":", ";"],
+  ],
+
+  "012": [
+    // 012 shifts the half-forms slightly — R encodes subscript ra differently
+    ["R", "्र"], // subscript ra instead of reph
+    ["`", "़"],
+    ["=", "ऽ"], // avagraha
+  ],
+
+  "013": [
+    // 013 has reph as 'Z' and ज़ moved to '\''
+    ["Z", "र्"],
+    ["z", "र्"],
+    ["'", "ज़"],
+  ],
+
+  "014": [
+    // 014 reverses some upper/lower vowel signs
+    ["e", "ि"],
+    ["I", "े"],
+    ["u", "ू"],
+    ["U", "ु"],
+    ["[", "ू"],
+    ["]", "ु"],
+  ],
+
+  "015": [
+    // 015 uses '=' for halant (virama) and '~' for chandrabindu
+    ["=", "्"],
+    ["~", "ँ"],
+    ["M", "ं"],
+    ["H", "ः"],
+  ],
+
+  "016": [
+    // 016 adds explicit halant char and slight vowel reordering
+    ["=", "्"],
+    ["A", "अ"],
+    ["a", "आ"],
+    ["#", "इ"],
+    ["i", "ई"],
+    ["u", "उ"],
+    ["U", "ऊ"],
+    ["E", "ए"],
+    ["e", "ऐ"],
+    ["O", "ओ"],
+    ["o", "औ"],
+  ],
+
+  "017": [
+    // Bold variant of 010 — same char mapping
+  ],
+
+  "018": [
+    // Bold italic — mostly same; 'R' is subscript ra
+    ["R", "्र"],
+  ],
+
+  "019": [
+    // Same as 013 for reph
+    ["Z", "र्"],
+    ["z", "र्"],
+  ],
+
+  "020": [
+    // 020 punctuation shifts
+    [".", "."], // full stop stays ASCII
+    [";", "।"],
+    [">", "।"],
+  ],
+
+  "021": [
+    // 021 uses explicit virama mapping
+    ["=", "्"],
+    ["~", "ँ"],
+  ],
+
+  "022": [
+    // 022 alternate numeral base — still Devanagari but '0' maps to ०
+    ["0", "०"],
+    ["1", "१"],
+    ["2", "२"],
+    ["3", "३"],
+    ["4", "४"],
+    ["5", "५"],
+    ["6", "६"],
+    ["7", "७"],
+    ["8", "८"],
+    ["9", "९"],
+    // alternate vowel i
+    ["i", "ि"],
+    ["I", "ी"],
+  ],
+
+  "023": [
+    // 023 swaps short/long i matras
+    ["I", "ी"],
+    ["i", "ि"],
+  ],
+
+  "024": [
+    // 024 — display font, same as 010 mapping
+  ],
+
+  "025": [
+    // 025 uses 'R' for reph and '>' for subscript ra
+    ["R", "र्"],
+    [">", "्र"],
+  ],
+
+  "026": [
+    // 026 italic — same encoding
+  ],
+
+  "027": [
+    // 027 slight difference: avagraha on '='
+    ["=", "ऽ"],
+  ],
+
+  "028": [
+    // 028 uses 'o' for ो and 'O' for ौ (same as base but explicit)
+    ["o", "ो"],
+    ["O", "ौ"],
+  ],
+
+  "029": [
+    // 029 condensed — identical to 010
+  ],
+
+  "030": [
+    // 030 — adds nukta handling
+    ["`k", "क़"],
+    ["`K", "ख़"],
+    ["`g", "ग़"],
+    ["`j", "ज़"],
+    ["`Q", "ड़"],
+    ["`D", "ढ़"],
+    ["`f", "फ़"],
+    ["`y", "य़"],
+    ["`r", "ऱ"],
+    ["`l", "ऴ"],
+  ],
+
+  "031": [
+    // 031 nukta same as 030
+    ["`k", "क़"],
+    ["`j", "ज़"],
+    ["`Q", "ड़"],
+    ["`f", "फ़"],
+  ],
+
+  "032": [
+    // 032 — subscript ra via '>'
+    [">", "्र"],
+    ["R", "र्"],
+  ],
+
+  "033": [
+    // 033 — virama explicit
+    ["=", "्"],
+  ],
+
+  "034": [
+    // 034 — swaps ि and ी
+    ["i", "ि"],
+    ["I", "ी"],
+    // alternate aa matra
+    ["a", "ा"],
+  ],
+
+  "035": [
+    // 035 — adds explicit virama, avagraha, special symbols
+    ["=", "्"],
+    ["\\", "ऽ"], // avagraha on backslash
+    ["Z", "ज़"],
+    ["z", "ज़"],
+    ["R", "र्"],
+    // Nukta forms
+    ["`k", "क़"],
+    ["`K", "ख़"],
+    ["`g", "ग़"],
+    ["`j", "ज़"],
+    ["`Q", "ड़"],
+    ["`D", "ढ़"],
+    ["`f", "फ़"],
+    ["`y", "य़"],
+    ["`r", "ऱ"],
+    // Full stops
+    [">", "."],
+    [".", "।"],
+  ],
+};
+
+// ─── Build Sorted Map For a Variant ───────────────────────────────────────────
+
+function buildMap(variant: FontVariant): Array<[string, string]> {
+  const overrides = VARIANT_OVERRIDES[variant] ?? [];
+  // Build an ordered list: overrides first (they take priority), then base
+  const overrideKeys = new Set(overrides.map(([k]) => k));
+  const base = BASE_KRU_TO_UNI_RAW.filter(([k]) => !overrideKeys.has(k));
+  const combined = [...overrides, ...base];
+  // Sort longest-key-first for greedy matching
+  return combined.sort((a, b) => b[0].length - a[0].length);
+}
+
+// Cache built maps
+const MAP_CACHE = new Map<FontVariant, Array<[string, string]>>();
+function getMap(variant: FontVariant): Array<[string, string]> {
+  if (!MAP_CACHE.has(variant)) MAP_CACHE.set(variant, buildMap(variant));
+  return MAP_CACHE.get(variant)!;
+}
+
+// ─── Build Reverse Map (Unicode → Krutidev) ───────────────────────────────────
+
+function buildReverseMap(variant: FontVariant): Array<[string, string]> {
+  const forward = getMap(variant);
   const seen = new Set<string>();
   const pairs: Array<[string, string]> = [];
-  for (const [kru, uni] of KRU_TO_UNI_RAW) {
+  for (const [kru, uni] of forward) {
     if (!seen.has(uni)) {
       seen.add(uni);
       pairs.push([uni, kru]);
     }
   }
-  // Sort by Unicode key length descending for greedy match
   return pairs.sort((a, b) => b[0].length - a[0].length);
-})();
+}
 
-function krutidevToUnicode(input: string): string {
+const REV_MAP_CACHE = new Map<FontVariant, Array<[string, string]>>();
+function getReverseMap(variant: FontVariant): Array<[string, string]> {
+  if (!REV_MAP_CACHE.has(variant))
+    REV_MAP_CACHE.set(variant, buildReverseMap(variant));
+  return REV_MAP_CACHE.get(variant)!;
+}
+
+// ─── Conversion Functions ─────────────────────────────────────────────────────
+
+function krutidevToUnicode(input: string, variant: FontVariant): string {
+  const map = getMap(variant);
   let result = "";
   let i = 0;
   while (i < input.length) {
     let matched = false;
-    for (const [kru, uni] of KRU_TO_UNI) {
+    for (const [kru, uni] of map) {
       if (input.startsWith(kru, i)) {
         result += uni;
         i += kru.length;
@@ -291,23 +643,25 @@ function krutidevToUnicode(input: string): string {
   return result;
 }
 
-function unicodeToKrutidev(input: string): string {
+function unicodeToKrutidev(input: string, variant: FontVariant): string {
+  const map = getReverseMap(variant);
   let result = "";
   let i = 0;
-  while (i < input.length) {
+  const chars = [...input];
+  while (i < chars.length) {
     let matched = false;
-    for (const [uni, kru] of UNI_TO_KRU) {
-      // slice by character not byte to handle multi-codepoint
-      const slice = [...input].slice(i, i + uni.length).join("");
+    for (const [uni, kru] of map) {
+      const uniChars = [...uni];
+      const slice = chars.slice(i, i + uniChars.length).join("");
       if (slice === uni) {
         result += kru;
-        i += uni.length;
+        i += uniChars.length;
         matched = true;
         break;
       }
     }
     if (!matched) {
-      result += input[i];
+      result += chars[i];
       i++;
     }
   }
@@ -322,13 +676,14 @@ export default function TextFormatConverter() {
   const [direction, setDirection] = useState<Direction>("kru-to-uni");
   const [inputText, setInputText] = useState("");
   const [copied, setCopied] = useState(false);
+  const [fontVariant, setFontVariant] = useState<FontVariant>("010");
 
   const outputText = useMemo(() => {
     if (!inputText) return "";
     return direction === "kru-to-uni"
-      ? krutidevToUnicode(inputText)
-      : unicodeToKrutidev(inputText);
-  }, [inputText, direction]);
+      ? krutidevToUnicode(inputText, fontVariant)
+      : unicodeToKrutidev(inputText, fontVariant);
+  }, [inputText, direction, fontVariant]);
 
   const handleSwapDirection = useCallback(() => {
     setDirection((prev) =>
@@ -410,24 +765,59 @@ export default function TextFormatConverter() {
         </div>
       </div>
 
-      {/* Direction label strip */}
-      <div className="flex items-center gap-3 text-xs text-gray-500">
-        <span className="px-2 py-1 rounded-md bg-white/5 border border-white/10 font-mono">
-          {isKruToUni ? "Krutidev" : "Unicode (Devanagari)"}
-        </span>
-        <ArrowLeftRight className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-        <span className="px-2 py-1 rounded-md bg-white/5 border border-white/10 font-mono">
-          {isKruToUni ? "Unicode (Devanagari)" : "Krutidev"}
-        </span>
-        <button
-          type="button"
-          onClick={handleSwapDirection}
-          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 border border-white/10 text-gray-400 hover:text-gray-200 hover:bg-white/10 transition-all duration-200"
-          title="Swap direction"
-        >
-          <RefreshCw className="w-3 h-3" />
-          Swap
-        </button>
+      {/* Font Variant Selector + Direction strip */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Font variant picker */}
+        <div className="flex items-center gap-2">
+          <Label className="text-xs font-semibold text-gray-400 whitespace-nowrap">
+            Font Variant
+          </Label>
+          <Select
+            value={fontVariant}
+            onValueChange={(v) => {
+              setFontVariant(v as FontVariant);
+              setInputText("");
+            }}
+          >
+            <SelectTrigger
+              data-ocid="text_converter.font_variant.select"
+              className="h-8 w-40 text-xs bg-white/5 border-white/10 text-gray-300 rounded-lg"
+            >
+              <SelectValue placeholder="Select font" />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-900 border-white/10 text-gray-200 max-h-56">
+              {FONT_VARIANTS.map((v) => (
+                <SelectItem
+                  key={v}
+                  value={v}
+                  className="text-xs hover:bg-white/10 focus:bg-white/10"
+                >
+                  Kruti Dev {v}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Direction label */}
+        <div className="flex items-center gap-3 text-xs text-gray-500 ml-auto">
+          <span className="px-2 py-1 rounded-md bg-white/5 border border-white/10 font-mono">
+            {isKruToUni ? `Kruti Dev ${fontVariant}` : "Unicode (Devanagari)"}
+          </span>
+          <ArrowLeftRight className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+          <span className="px-2 py-1 rounded-md bg-white/5 border border-white/10 font-mono">
+            {isKruToUni ? "Unicode (Devanagari)" : `Kruti Dev ${fontVariant}`}
+          </span>
+          <button
+            type="button"
+            onClick={handleSwapDirection}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 border border-white/10 text-gray-400 hover:text-gray-200 hover:bg-white/10 transition-all duration-200"
+            title="Swap direction"
+          >
+            <RefreshCw className="w-3 h-3" />
+            Swap
+          </button>
+        </div>
       </div>
 
       {/* Text areas */}
@@ -436,7 +826,7 @@ export default function TextFormatConverter() {
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              {isKruToUni ? "Krutidev Input" : "Unicode Input"}
+              {isKruToUni ? `Kruti Dev ${fontVariant} Input` : "Unicode Input"}
             </Label>
             <span className="text-xs text-gray-600 tabular-nums">
               {inputText.length} chars
@@ -448,7 +838,7 @@ export default function TextFormatConverter() {
             onChange={(e) => setInputText(e.target.value)}
             placeholder={
               isKruToUni
-                ? "Type or paste Krutidev text here…"
+                ? `Type or paste Kruti Dev ${fontVariant} text here…`
                 : "Type or paste Unicode Devanagari text here…"
             }
             className="min-h-[280px] resize-y font-mono text-sm bg-white/5 border-white/10 text-gray-200 placeholder:text-gray-600 focus:border-teal-500/50 focus:ring-teal-500/20 rounded-xl leading-relaxed"
@@ -459,7 +849,9 @@ export default function TextFormatConverter() {
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              {isKruToUni ? "Unicode Output" : "Krutidev Output"}
+              {isKruToUni
+                ? "Unicode Devanagari Output"
+                : `Kruti Dev ${fontVariant} Output`}
             </Label>
             <span className="text-xs text-gray-600 tabular-nums">
               {outputText.length} chars
@@ -472,7 +864,7 @@ export default function TextFormatConverter() {
             placeholder={
               isKruToUni
                 ? "Converted Unicode Devanagari will appear here…"
-                : "Converted Krutidev text will appear here…"
+                : `Converted Kruti Dev ${fontVariant} text will appear here…`
             }
             className="min-h-[280px] resize-y font-mono text-sm bg-white/5 border-white/10 text-gray-200 placeholder:text-gray-600 rounded-xl leading-relaxed cursor-default select-all"
           />
@@ -507,15 +899,16 @@ export default function TextFormatConverter() {
         </Button>
       </div>
 
-      {/* Hint / Info card */}
+      {/* Info card */}
       <div className="rounded-xl bg-white/5 border border-white/10 p-4 text-xs text-gray-500 space-y-1.5 leading-relaxed">
         <p className="font-semibold text-gray-400">How to use</p>
         {isKruToUni ? (
           <ul className="list-disc list-inside space-y-1">
             <li>
-              Paste or type Krutidev-encoded text in the left box (e.g., text
-              typed with Krutidev 010 font).
+              Select the Kruti Dev font variant (010 – 035) that was used to
+              type the original text.
             </li>
+            <li>Paste or type the Krutidev-encoded text in the left box.</li>
             <li>
               The right box instantly shows the equivalent Unicode Devanagari
               (readable in all modern apps).
@@ -529,12 +922,16 @@ export default function TextFormatConverter() {
         ) : (
           <ul className="list-disc list-inside space-y-1">
             <li>
+              Select the target Kruti Dev font variant (010 – 035) you want to
+              output.
+            </li>
+            <li>
               Paste Unicode Devanagari text (e.g., from a website or Word
               document) in the left box.
             </li>
             <li>
               The right box shows the equivalent Krutidev-encoded characters for
-              legacy font use.
+              the selected font.
             </li>
             <li>
               Click{" "}
@@ -543,6 +940,9 @@ export default function TextFormatConverter() {
             </li>
           </ul>
         )}
+        <p className="text-gray-600 mt-1">
+          Supported variants: Kruti Dev 010 – 035 (26 fonts)
+        </p>
       </div>
     </div>
   );

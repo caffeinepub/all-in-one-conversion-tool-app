@@ -1,14 +1,28 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Film, Moon, Sun, Zap } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown, Film, Moon, Sun, Zap } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAppInfo } from "../hooks/useQueries";
 
 interface HeaderProps {
   onOpenMultimedia?: () => void;
+  isMultimedia?: boolean;
+  onOpenConvertAll?: () => void;
 }
 
-export default function Header({ onOpenMultimedia }: HeaderProps) {
+export default function Header({
+  onOpenMultimedia,
+  isMultimedia = false,
+  onOpenConvertAll,
+}: HeaderProps) {
   const { theme, setTheme } = useTheme();
   const { isSuccess } = useAppInfo();
 
@@ -33,10 +47,12 @@ export default function Header({ onOpenMultimedia }: HeaderProps) {
             </div>
             <div>
               <h1 className="font-display font-bold text-lg leading-tight text-foreground">
-                ConvertAll Studio
+                {isMultimedia ? "Multimedia Studio" : "ConvertAll Studio"}
               </h1>
               <p className="text-xs text-muted-foreground leading-none">
-                All-in-One Conversion Tool
+                {isMultimedia
+                  ? "Audio & Video Tools"
+                  : "All-in-One Conversion Tool"}
               </p>
             </div>
           </div>
@@ -53,17 +69,49 @@ export default function Header({ onOpenMultimedia }: HeaderProps) {
               </Badge>
             )}
 
-            {onOpenMultimedia && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onOpenMultimedia}
-                className="hidden sm:flex items-center gap-1.5 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors text-xs font-medium"
-              >
-                <Film className="w-4 h-4" />
-                Multimedia
-              </Button>
-            )}
+            {/* Studio Switcher Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  data-ocid="studio.switcher.button"
+                  className="hidden sm:flex items-center gap-1.5 rounded-xl text-xs font-medium border-border/60 hover:bg-primary/10 hover:text-primary hover:border-primary/40 transition-colors"
+                >
+                  <Film className="w-3.5 h-3.5" />
+                  Switch Studio
+                  <ChevronDown className="w-3 h-3 opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                  Choose Studio
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  data-ocid="studio.convertall.link"
+                  onClick={onOpenConvertAll}
+                  className={`cursor-pointer gap-2 ${!isMultimedia ? "bg-primary/10 text-primary font-medium" : ""}`}
+                >
+                  <Zap className="w-4 h-4" />
+                  ConvertAll Studio
+                  {!isMultimedia && (
+                    <span className="ml-auto text-xs opacity-60">Active</span>
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  data-ocid="studio.multimedia.link"
+                  onClick={onOpenMultimedia}
+                  className={`cursor-pointer gap-2 ${isMultimedia ? "bg-primary/10 text-primary font-medium" : ""}`}
+                >
+                  <Film className="w-4 h-4" />
+                  Multimedia Studio
+                  {isMultimedia && (
+                    <span className="ml-auto text-xs opacity-60">Active</span>
+                  )}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <Button
               variant="ghost"

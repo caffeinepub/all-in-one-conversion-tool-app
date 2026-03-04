@@ -28,13 +28,22 @@ function AppContent() {
     usePermissionOnboarding();
 
   if (showMultimedia) {
-    return <MultimediaApp onBack={() => setShowMultimedia(false)} />;
+    return (
+      <MultimediaApp
+        onBack={() => setShowMultimedia(false)}
+        onOpenConvertAll={() => setShowMultimedia(false)}
+      />
+    );
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {showPermissions && <PermissionOnboarding onDone={dismissPermissions} />}
-      <Header onOpenMultimedia={() => setShowMultimedia(true)} />
+      <Header
+        onOpenMultimedia={() => setShowMultimedia(true)}
+        isMultimedia={false}
+        onOpenConvertAll={() => setShowMultimedia(false)}
+      />
       <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
       <main className="flex-1 container mx-auto px-4 py-6 max-w-7xl">
         <div className="animate-fade-in">

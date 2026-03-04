@@ -1,39 +1,21 @@
-import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
-import {
-  ArrowLeft,
-  Camera,
-  Cctv,
-  Download,
-  Film,
-  Moon,
-  Music,
-  Sun,
-  Tv,
-  Type,
-  Video,
-  Zap,
-} from "lucide-react";
+import { Camera, Film, Music, Tv, Type, Video } from "lucide-react";
 import { Heart } from "lucide-react";
-import { useTheme } from "next-themes";
 import { useState } from "react";
-import CCTVCam from "./modules/CCTVCam";
+import Header from "./components/Header";
 import IPCamera from "./modules/IPCamera";
 import IPTVPlayer from "./modules/IPTVPlayer";
 import MP3Cutter from "./modules/MP3Cutter";
 import TextFormatConverter from "./modules/TextFormatConverter";
 import VideoClips from "./modules/VideoClips";
 import VideoCutter from "./modules/VideoCutter";
-import VideoDownloaderMultimedia from "./modules/VideoDownloaderMultimedia";
 
 export type MultimediaTabId =
   | "mp3-cutter"
   | "video-cutter"
-  | "video-downloader"
   | "ip-camera"
   | "video-clips"
   | "iptv-player"
-  | "cctv-cam"
   | "text-converter";
 
 interface MultimediaTab {
@@ -57,12 +39,6 @@ const tabs: MultimediaTab[] = [
     description: "Trim video clips",
   },
   {
-    id: "video-downloader",
-    label: "Video Downloader",
-    icon: <Download className="w-4 h-4" />,
-    description: "Download from YouTube",
-  },
-  {
     id: "ip-camera",
     label: "IP Camera",
     icon: <Camera className="w-4 h-4" />,
@@ -81,12 +57,6 @@ const tabs: MultimediaTab[] = [
     description: "Free IPTV streams",
   },
   {
-    id: "cctv-cam",
-    label: "CCTV CAM",
-    icon: <Cctv className="w-4 h-4" />,
-    description: "Live CCTV viewer",
-  },
-  {
     id: "text-converter",
     label: "Text Converter",
     icon: <Type className="w-4 h-4" />,
@@ -96,11 +66,14 @@ const tabs: MultimediaTab[] = [
 
 interface MultimediaAppProps {
   onBack?: () => void;
+  onOpenConvertAll?: () => void;
 }
 
-export default function MultimediaApp({ onBack }: MultimediaAppProps) {
+export default function MultimediaApp({
+  onBack,
+  onOpenConvertAll,
+}: MultimediaAppProps) {
   const [activeTab, setActiveTab] = useState<MultimediaTabId>("mp3-cutter");
-  const { theme, setTheme } = useTheme();
 
   const hostname =
     typeof window !== "undefined" ? window.location.hostname : "unknown-app";
@@ -109,51 +82,11 @@ export default function MultimediaApp({ onBack }: MultimediaAppProps) {
 
   return (
     <div className="min-h-screen flex flex-col multimedia-bg">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-white/10 multimedia-header">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              {onBack && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onBack}
-                  className="rounded-xl hover:bg-white/10 text-gray-400 hover:text-gray-200 transition-colors mr-1"
-                  aria-label="Back to ConvertAll Studio"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </Button>
-              )}
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-400 flex items-center justify-center shadow-glow">
-                <Zap className="w-5 h-5 text-gray-100" />
-              </div>
-              <div>
-                <h1 className="font-display font-bold text-lg leading-tight text-gray-300">
-                  Multimedia Studio
-                </h1>
-                <p className="text-xs text-gray-500 leading-none">
-                  Audio & Video Tools
-                </p>
-              </div>
-            </div>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="rounded-xl hover:bg-white/10 text-gray-400 hover:text-gray-200 transition-colors"
-              aria-label="Toggle theme"
-            >
-              {theme === "dark" ? (
-                <Sun className="w-4 h-4" />
-              ) : (
-                <Moon className="w-4 h-4" />
-              )}
-            </Button>
-          </div>
-        </div>
-      </header>
+      <Header
+        isMultimedia={true}
+        onOpenMultimedia={undefined}
+        onOpenConvertAll={onOpenConvertAll ?? onBack}
+      />
 
       {/* Tab Navigation */}
       <nav className="border-b border-white/10 multimedia-nav">
@@ -195,11 +128,9 @@ export default function MultimediaApp({ onBack }: MultimediaAppProps) {
         <div className="animate-fade-in">
           {activeTab === "mp3-cutter" && <MP3Cutter />}
           {activeTab === "video-cutter" && <VideoCutter />}
-          {activeTab === "video-downloader" && <VideoDownloaderMultimedia />}
           {activeTab === "ip-camera" && <IPCamera />}
           {activeTab === "video-clips" && <VideoClips />}
           {activeTab === "iptv-player" && <IPTVPlayer />}
-          {activeTab === "cctv-cam" && <CCTVCam />}
           {activeTab === "text-converter" && <TextFormatConverter />}
         </div>
       </main>
