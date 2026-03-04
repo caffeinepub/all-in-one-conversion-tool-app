@@ -385,6 +385,12 @@ function LiveCameraWindow({
   useEffect(() => {
     let cancelled = false;
 
+    async function tryGetStream(
+      constraints: MediaStreamConstraints,
+    ): Promise<MediaStream> {
+      return navigator.mediaDevices.getUserMedia(constraints);
+    }
+
     async function startCamera() {
       setIsStarting(true);
       setCameraError(null);
@@ -395,62 +401,105 @@ function LiveCameraWindow({
         streamRef.current = null;
       }
 
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
+      // Check if mediaDevices API is available at all
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        if (!cancelled) {
+          setCameraError(
+            "Camera API is not supported in this browser. Please use Chrome, Firefox, or Safari on a modern device, or use 'Choose from Files' to import images.",
+          );
+          setIsStarting(false);
+        }
+        return;
+      }
+
+      let stream: MediaStream | null = null;
+
+      // Try a progressive fallback chain for maximum device compatibility
+      const constraintChain: MediaStreamConstraints[] = [
+        // 1. Preferred: specific facing mode + ideal resolution
+        {
           video: {
             facingMode: { ideal: facingMode },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
+            width: { ideal: 1920, max: 4096 },
+            height: { ideal: 1080, max: 4096 },
           },
           audio: false,
-        });
-        if (cancelled) {
-          for (const track of stream.getTracks()) track.stop();
-          return;
-        }
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-        }
-      } catch (err: any) {
-        if (!cancelled) {
-          if (err.name === "NotAllowedError") {
-            setCameraError(
-              "Camera access denied. To use the scanner, please allow camera access:\n• On mobile: go to Settings → Browser → Camera and set to Allow\n• On desktop: click the camera icon in your browser's address bar and allow access, then refresh.",
-            );
-          } else if (err.name === "NotFoundError") {
-            setCameraError("No camera found on this device.");
-          } else if (err.name === "OverconstrainedError") {
-            // Fallback: try without ideal facingMode constraint
-            try {
-              const fallbackStream = await navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: false,
-              });
-              if (!cancelled) {
-                streamRef.current = fallbackStream;
-                if (videoRef.current) {
-                  videoRef.current.srcObject = fallbackStream;
-                  await videoRef.current.play();
-                }
-              } else {
-                for (const track of fallbackStream.getTracks()) track.stop();
-              }
-            } catch (fallbackErr: any) {
-              setCameraError(
-                `Could not start camera: ${fallbackErr.message || fallbackErr.name}`,
-              );
-            }
-          } else {
-            setCameraError(
-              `Could not start camera: ${err.message || err.name}`,
-            );
+        },
+        // 2. Exact facing mode, no resolution hint
+        {
+          video: { facingMode: { ideal: facingMode } },
+          audio: false,
+        },
+        // 3. Any video — no constraints at all
+        { video: true, audio: false },
+      ];
+
+      let lastError: any = null;
+      for (const constraints of constraintChain) {
+        if (cancelled) return;
+        try {
+          stream = await tryGetStream(constraints);
+          break; // success — stop trying
+        } catch (err: any) {
+          lastError = err;
+          // Permission denied — no point trying further
+          if (
+            err.name === "NotAllowedError" ||
+            err.name === "PermissionDeniedError"
+          ) {
+            break;
           }
         }
-      } finally {
-        if (!cancelled) setIsStarting(false);
       }
+
+      if (cancelled) {
+        if (stream) for (const t of stream.getTracks()) t.stop();
+        return;
+      }
+
+      if (!stream) {
+        const err = lastError;
+        if (
+          err?.name === "NotAllowedError" ||
+          err?.name === "PermissionDeniedError"
+        ) {
+          setCameraError(
+            "Camera access denied. Please allow camera access:\n• On Android/iOS: go to Settings → Browser → Camera and set to Allow.\n• On desktop: click the camera/lock icon in your browser's address bar and allow, then refresh the page.",
+          );
+        } else if (
+          err?.name === "NotFoundError" ||
+          err?.name === "DevicesNotFoundError"
+        ) {
+          setCameraError(
+            "No camera found on this device. Use 'Choose from Files' to import images instead.",
+          );
+        } else if (
+          err?.name === "NotReadableError" ||
+          err?.name === "TrackStartError"
+        ) {
+          setCameraError(
+            "Camera is in use by another app. Please close other apps using the camera, then try again.",
+          );
+        } else {
+          setCameraError(
+            `Could not start camera: ${err?.message || err?.name || "Unknown error"}.\nTry refreshing the page or use 'Choose from Files' to import images.`,
+          );
+        }
+        setIsStarting(false);
+        return;
+      }
+
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        try {
+          await videoRef.current.play();
+        } catch (playErr: any) {
+          // Autoplay blocked — the video may still display with muted+playsInline
+          console.warn("Video autoplay warning:", playErr?.message);
+        }
+      }
+      if (!cancelled) setIsStarting(false);
     }
 
     startCamera();
@@ -469,8 +518,16 @@ function LiveCameraWindow({
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
 
-    const w = video.videoWidth || 640;
-    const h = video.videoHeight || 480;
+    // Wait for video to have valid dimensions
+    let w = video.videoWidth;
+    let h = video.videoHeight;
+
+    // If video dimensions are zero, try rendered dimensions as fallback
+    if (!w || !h) {
+      w = video.clientWidth || 640;
+      h = video.clientHeight || 480;
+    }
+
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext("2d")!;
@@ -568,13 +625,16 @@ function LiveCameraWindow({
             <div className="absolute inset-0 bg-white z-10 pointer-events-none opacity-80 animate-fade-out" />
           )}
 
+          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
           <video
             ref={videoRef}
             className={`w-full object-contain ${isStarting || cameraError ? "invisible" : "visible"}`}
             autoPlay
             playsInline
             muted
-            style={{ maxHeight: "60vh" }}
+            // Required for iOS Safari autoplay
+            {...({ "webkit-playsinline": "true" } as any)}
+            style={{ maxHeight: "60vh", display: "block" }}
           />
 
           {/* Document guide overlay */}

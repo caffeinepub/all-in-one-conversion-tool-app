@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ExternalLink, Languages, Type } from "lucide-react";
+import { Languages, Type } from "lucide-react";
 import TextFormatConverter from "./TextFormatConverter";
 
 const GOOGLE_TRANSLATE_URL =
@@ -7,7 +7,7 @@ const GOOGLE_TRANSLATE_URL =
 
 export default function TextMagic() {
   const handleTranslatorClick = () => {
-    window.open(GOOGLE_TRANSLATE_URL, "_blank", "noopener,noreferrer");
+    window.location.href = GOOGLE_TRANSLATE_URL;
   };
 
   return (
@@ -34,7 +34,6 @@ export default function TextMagic() {
           >
             <Languages className="w-4 h-4" />
             Translator
-            <ExternalLink className="w-3 h-3 opacity-60" />
           </button>
           <TabsTrigger
             data-ocid="text_magic.text_converter_tab"
