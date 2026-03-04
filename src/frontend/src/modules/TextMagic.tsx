@@ -1,9 +1,15 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Languages, Type } from "lucide-react";
+import { ExternalLink, Languages, Type } from "lucide-react";
 import TextFormatConverter from "./TextFormatConverter";
-import Translator from "./Translator";
+
+const GOOGLE_TRANSLATE_URL =
+  "https://translate.google.com/?hl=hi&sl=hi&tl=en&op=translate";
 
 export default function TextMagic() {
+  const handleTranslatorClick = () => {
+    window.open(GOOGLE_TRANSLATE_URL, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div className="space-y-6">
       {/* Page heading */}
@@ -17,18 +23,19 @@ export default function TextMagic() {
       </div>
 
       {/* Internal tabs */}
-      <Tabs defaultValue="translator" className="space-y-6">
+      <Tabs defaultValue="text-converter" className="space-y-6">
         <TabsList className="bg-white/5 border border-white/10 rounded-xl p-1 h-auto gap-1">
-          <TabsTrigger
+          <button
             data-ocid="text_magic.translator_tab"
-            value="translator"
+            onClick={handleTranslatorClick}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
-              data-[state=active]:bg-teal-500/90 data-[state=active]:text-gray-100 data-[state=active]:shadow-sm
-              data-[state=inactive]:text-gray-500 data-[state=inactive]:hover:text-gray-300"
+              text-gray-500 hover:text-gray-300 hover:bg-white/5"
+            type="button"
           >
             <Languages className="w-4 h-4" />
             Translator
-          </TabsTrigger>
+            <ExternalLink className="w-3 h-3 opacity-60" />
+          </button>
           <TabsTrigger
             data-ocid="text_magic.text_converter_tab"
             value="text-converter"
@@ -40,10 +47,6 @@ export default function TextMagic() {
             Text Converter
           </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="translator" className="mt-0">
-          <Translator />
-        </TabsContent>
 
         <TabsContent value="text-converter" className="mt-0">
           <TextFormatConverter />
