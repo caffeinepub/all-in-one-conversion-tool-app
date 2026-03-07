@@ -163,7 +163,7 @@ export function TextCustomizationPanel({
           </div>
 
           {/* ── Text Background Color ── */}
-          <div className="glass-card p-3 space-y-3 rounded-lg border border-border/50">
+          <div className="glass-card box-white p-3 space-y-3 rounded-lg border border-border/50">
             <div className="flex items-center gap-2">
               <Palette className="h-4 w-4 text-primary" />
               <span className="text-xs font-semibold text-foreground">
@@ -229,7 +229,7 @@ export function TextCustomizationPanel({
           </div>
 
           {/* ── Text Shadow ── */}
-          <div className="glass-card p-3 space-y-3 rounded-lg border border-border/50">
+          <div className="glass-card box-black p-3 space-y-3 rounded-lg border border-border/50">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
               <span className="text-xs font-semibold text-foreground">

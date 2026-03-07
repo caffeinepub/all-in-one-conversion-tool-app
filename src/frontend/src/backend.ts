@@ -89,33 +89,271 @@ export class ExternalBlob {
         return this;
     }
 }
-export interface backendInterface {
-    getAppInfo(): Promise<{
-        icon: Uint8Array;
-        name: string;
-        version: string;
-    }>;
+export interface Move {
+    to: Position;
+    from: Position;
+    captured?: Piece;
+    piece: Piece;
 }
+export interface Position {
+    file: bigint;
+    rank: bigint;
+}
+export type Principal = Principal;
+export interface Piece {
+    pieceType: PieceType;
+    isWhite: boolean;
+}
+export interface GameState {
+    moves: Array<Move>;
+    mode: GameMode;
+    gameStatus: GameStatus;
+    player1: Principal;
+    player2?: Principal;
+    turnWhite: boolean;
+    board: Array<Array<Piece | null>>;
+}
+export enum GameMode {
+    vsAI = "vsAI",
+    multiplayer = "multiplayer"
+}
+export enum GameStatus {
+    stalemate = "stalemate",
+    draw = "draw",
+    playing = "playing",
+    checkmate = "checkmate",
+    waiting = "waiting"
+}
+export enum PieceType {
+    king = "king",
+    pawn = "pawn",
+    rook = "rook",
+    queen = "queen",
+    knight = "knight",
+    bishop = "bishop"
+}
+export interface backendInterface {
+    createRoom(mode: GameMode): Promise<string>;
+    getGameState(roomCode: string): Promise<GameState | null>;
+    joinRoom(roomCode: string): Promise<boolean>;
+    makeMove(roomCode: string, from: Position, to: Position): Promise<boolean>;
+    resetGame(roomCode: string): Promise<boolean>;
+}
+import type { GameMode as _GameMode, GameState as _GameState, GameStatus as _GameStatus, Move as _Move, Piece as _Piece, PieceType as _PieceType, Position as _Position, Principal as _Principal } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
-    async getAppInfo(): Promise<{
-        icon: Uint8Array;
-        name: string;
-        version: string;
-    }> {
+    async createRoom(arg0: GameMode): Promise<string> {
         if (this.processError) {
             try {
-                const result = await this.actor.getAppInfo();
+                const result = await this.actor.createRoom(to_candid_GameMode_n1(this._uploadFile, this._downloadFile, arg0));
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.getAppInfo();
+            const result = await this.actor.createRoom(to_candid_GameMode_n1(this._uploadFile, this._downloadFile, arg0));
             return result;
         }
     }
+    async getGameState(arg0: string): Promise<GameState | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getGameState(arg0);
+                return from_candid_opt_n3(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getGameState(arg0);
+            return from_candid_opt_n3(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async joinRoom(arg0: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.joinRoom(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.joinRoom(arg0);
+            return result;
+        }
+    }
+    async makeMove(arg0: string, arg1: Position, arg2: Position): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.makeMove(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.makeMove(arg0, arg1, arg2);
+            return result;
+        }
+    }
+    async resetGame(arg0: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.resetGame(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.resetGame(arg0);
+            return result;
+        }
+    }
+}
+function from_candid_GameMode_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _GameMode): GameMode {
+    return from_candid_variant_n15(_uploadFile, _downloadFile, value);
+}
+function from_candid_GameState_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _GameState): GameState {
+    return from_candid_record_n5(_uploadFile, _downloadFile, value);
+}
+function from_candid_GameStatus_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _GameStatus): GameStatus {
+    return from_candid_variant_n17(_uploadFile, _downloadFile, value);
+}
+function from_candid_Move_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Move): Move {
+    return from_candid_record_n8(_uploadFile, _downloadFile, value);
+}
+function from_candid_PieceType_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _PieceType): PieceType {
+    return from_candid_variant_n13(_uploadFile, _downloadFile, value);
+}
+function from_candid_Piece_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Piece): Piece {
+    return from_candid_record_n11(_uploadFile, _downloadFile, value);
+}
+function from_candid_opt_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Principal]): Principal | null {
+    return value.length === 0 ? null : value[0];
+}
+function from_candid_opt_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_GameState]): GameState | null {
+    return value.length === 0 ? null : from_candid_GameState_n4(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Piece]): Piece | null {
+    return value.length === 0 ? null : from_candid_Piece_n10(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_record_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    pieceType: _PieceType;
+    isWhite: boolean;
+}): {
+    pieceType: PieceType;
+    isWhite: boolean;
+} {
+    return {
+        pieceType: from_candid_PieceType_n12(_uploadFile, _downloadFile, value.pieceType),
+        isWhite: value.isWhite
+    };
+}
+function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    moves: Array<_Move>;
+    mode: _GameMode;
+    gameStatus: _GameStatus;
+    player1: _Principal;
+    player2: [] | [_Principal];
+    turnWhite: boolean;
+    board: Array<Array<[] | [_Piece]>>;
+}): {
+    moves: Array<Move>;
+    mode: GameMode;
+    gameStatus: GameStatus;
+    player1: Principal;
+    player2?: Principal;
+    turnWhite: boolean;
+    board: Array<Array<Piece | null>>;
+} {
+    return {
+        moves: from_candid_vec_n6(_uploadFile, _downloadFile, value.moves),
+        mode: from_candid_GameMode_n14(_uploadFile, _downloadFile, value.mode),
+        gameStatus: from_candid_GameStatus_n16(_uploadFile, _downloadFile, value.gameStatus),
+        player1: value.player1,
+        player2: record_opt_to_undefined(from_candid_opt_n18(_uploadFile, _downloadFile, value.player2)),
+        turnWhite: value.turnWhite,
+        board: from_candid_vec_n19(_uploadFile, _downloadFile, value.board)
+    };
+}
+function from_candid_record_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    to: _Position;
+    from: _Position;
+    captured: [] | [_Piece];
+    piece: _Piece;
+}): {
+    to: Position;
+    from: Position;
+    captured?: Piece;
+    piece: Piece;
+} {
+    return {
+        to: value.to,
+        from: value.from,
+        captured: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.captured)),
+        piece: from_candid_Piece_n10(_uploadFile, _downloadFile, value.piece)
+    };
+}
+function from_candid_variant_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    king: null;
+} | {
+    pawn: null;
+} | {
+    rook: null;
+} | {
+    queen: null;
+} | {
+    knight: null;
+} | {
+    bishop: null;
+}): PieceType {
+    return "king" in value ? PieceType.king : "pawn" in value ? PieceType.pawn : "rook" in value ? PieceType.rook : "queen" in value ? PieceType.queen : "knight" in value ? PieceType.knight : "bishop" in value ? PieceType.bishop : value;
+}
+function from_candid_variant_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    vsAI: null;
+} | {
+    multiplayer: null;
+}): GameMode {
+    return "vsAI" in value ? GameMode.vsAI : "multiplayer" in value ? GameMode.multiplayer : value;
+}
+function from_candid_variant_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    stalemate: null;
+} | {
+    draw: null;
+} | {
+    playing: null;
+} | {
+    checkmate: null;
+} | {
+    waiting: null;
+}): GameStatus {
+    return "stalemate" in value ? GameStatus.stalemate : "draw" in value ? GameStatus.draw : "playing" in value ? GameStatus.playing : "checkmate" in value ? GameStatus.checkmate : "waiting" in value ? GameStatus.waiting : value;
+}
+function from_candid_vec_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<Array<[] | [_Piece]>>): Array<Array<Piece | null>> {
+    return value.map((x)=>from_candid_vec_n20(_uploadFile, _downloadFile, x));
+}
+function from_candid_vec_n20(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<[] | [_Piece]>): Array<Piece | null> {
+    return value.map((x)=>from_candid_opt_n9(_uploadFile, _downloadFile, x));
+}
+function from_candid_vec_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_Move>): Array<Move> {
+    return value.map((x)=>from_candid_Move_n7(_uploadFile, _downloadFile, x));
+}
+function to_candid_GameMode_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: GameMode): _GameMode {
+    return to_candid_variant_n2(_uploadFile, _downloadFile, value);
+}
+function to_candid_variant_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: GameMode): {
+    vsAI: null;
+} | {
+    multiplayer: null;
+} {
+    return value == GameMode.vsAI ? {
+        vsAI: null
+    } : value == GameMode.multiplayer ? {
+        multiplayer: null
+    } : value;
 }
 export interface CreateActorOptions {
     agent?: Agent;

@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "next-themes";
 import { useState } from "react";
 import MultimediaApp from "./MultimediaApp";
+import ChessApp from "./chess/ChessApp";
 import Footer from "./components/Footer";
 import Header from "./components/Header";
 import PermissionOnboarding, {
@@ -21,17 +22,23 @@ export type TabId =
   | "passport-photo"
   | "bg-remover";
 
+type StudioMode = "convertall" | "multimedia" | "chess";
+
 function AppContent() {
   const [activeTab, setActiveTab] = useState<TabId>("pdf-converter");
-  const [showMultimedia, setShowMultimedia] = useState(false);
+  const [studioMode, setStudioMode] = useState<StudioMode>("convertall");
   const { show: showPermissions, dismiss: dismissPermissions } =
     usePermissionOnboarding();
 
-  if (showMultimedia) {
+  if (studioMode === "chess") {
+    return <ChessApp />;
+  }
+
+  if (studioMode === "multimedia") {
     return (
       <MultimediaApp
-        onBack={() => setShowMultimedia(false)}
-        onOpenConvertAll={() => setShowMultimedia(false)}
+        onBack={() => setStudioMode("convertall")}
+        onOpenConvertAll={() => setStudioMode("convertall")}
       />
     );
   }
@@ -40,13 +47,14 @@ function AppContent() {
     <div className="min-h-screen flex flex-col bg-background">
       {showPermissions && <PermissionOnboarding onDone={dismissPermissions} />}
       <Header
-        onOpenMultimedia={() => setShowMultimedia(true)}
+        onOpenMultimedia={() => setStudioMode("multimedia")}
         isMultimedia={false}
-        onOpenConvertAll={() => setShowMultimedia(false)}
+        onOpenConvertAll={() => setStudioMode("convertall")}
+        onOpenChess={() => setStudioMode("chess")}
       />
       <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
       <main className="flex-1 container mx-auto px-4 py-6 max-w-7xl">
-        <div className="animate-fade-in">
+        <div className="animate-fade-in convertall-studio">
           {activeTab === "image-editor" && <ImageEditor />}
           {activeTab === "pdf-converter" && <PDFConverter />}
           {activeTab === "image-converter" && <ImageConverter />}

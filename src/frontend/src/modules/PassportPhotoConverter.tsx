@@ -98,7 +98,7 @@ export function PassportPhotoConverter() {
 
       {/* Top Preview Section */}
       {state.processedDataUrl ? (
-        <div className="glass-card p-4">
+        <div className="glass-card box-white p-4">
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <div className="flex-shrink-0">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 text-center">
@@ -150,7 +150,7 @@ export function PassportPhotoConverter() {
       ) : (
         <label
           htmlFor="passport-file-input"
-          className="glass-card p-6 flex flex-col items-center justify-center gap-3 cursor-pointer border-2 border-dashed border-border hover:border-primary/50 transition-colors block"
+          className="glass-card box-white p-6 flex flex-col items-center justify-center gap-3 cursor-pointer border-2 border-dashed border-border hover:border-primary/50 transition-colors block"
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
         >
@@ -179,7 +179,7 @@ export function PassportPhotoConverter() {
         {/* Left Column: Controls */}
         <div className="w-full lg:w-72 flex-shrink-0 space-y-4">
           {/* Upload */}
-          <div className="glass-card p-4 space-y-3">
+          <div className="glass-card box-black p-4 space-y-3">
             <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
               <CreditCard className="w-4 h-4 text-primary" />
               Photo Upload
@@ -205,7 +205,7 @@ export function PassportPhotoConverter() {
           </div>
 
           {/* Size Preset */}
-          <div className="glass-card p-4 space-y-3">
+          <div className="glass-card box-white p-4 space-y-3">
             <h3 className="text-sm font-semibold text-foreground">
               Size Preset
             </h3>
@@ -280,7 +280,7 @@ export function PassportPhotoConverter() {
           </div>
 
           {/* Copy Count */}
-          <div className="glass-card p-4 space-y-3">
+          <div className="glass-card box-black p-4 space-y-3">
             <h3 className="text-sm font-semibold text-foreground">
               Copies on A4
             </h3>
@@ -306,7 +306,7 @@ export function PassportPhotoConverter() {
           </div>
 
           {/* Text Overlay */}
-          <div className="glass-card p-4 space-y-3">
+          <div className="glass-card box-white p-4 space-y-3">
             <h3 className="text-sm font-semibold text-foreground">
               Text Overlay
             </h3>

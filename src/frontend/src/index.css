@@ -108,6 +108,24 @@
   }
 }
 
+/* ─── Chess Design Tokens ────────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    --chess-light: #f0d9b5;
+    --chess-dark: #b58863;
+    --chess-light-hover: #f7e4c6;
+    --chess-dark-hover: #c49a70;
+    --chess-selected: #f6f669;
+    --chess-lastmove-light: #cdd13a;
+    --chess-lastmove-dark: #aaa23a;
+    --chess-check: #e74c3c;
+    --chess-border: #7a5c3a;
+    --chess-label: #d4b896;
+    --chess-light-piece: #f0d9b5;
+    --chess-dark-piece: #4a2e10;
+  }
+}
+
 @layer components {
   .glass-card {
     /* Use plain CSS instead of @apply with opacity modifier to avoid PostCSS resolution issues */
@@ -117,6 +135,182 @@
     border: 1px solid oklch(var(--border));
     border-radius: 0.75rem;
     box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.12);
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     ALTERNATING BLACK & WHITE BOX THEME
+     All .glass-card boxes alternate stark black ↔ white
+     .box-black  →  pure black background, white text
+     .box-white  →  pure white background, black text
+  ══════════════════════════════════════════════════════════════ */
+
+  /* ── BLACK BOX ── */
+  .box-black {
+    background-color: #0d0d0d !important;
+    color: #f0f0f0 !important;
+    border: 1px solid #1f1f1f !important;
+    box-shadow: 0 4px 32px 0 rgba(0, 0, 0, 0.6) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  /* All text tokens inside black box */
+  .box-black .text-foreground {
+    color: #f0f0f0 !important;
+  }
+  .box-black .text-muted-foreground {
+    color: #a0a0a0 !important;
+  }
+  .box-black h1,
+  .box-black h2,
+  .box-black h3,
+  .box-black h4 {
+    color: #f0f0f0 !important;
+  }
+  .box-black p,
+  .box-black span,
+  .box-black label {
+    color: inherit !important;
+  }
+  .box-black small {
+    color: #a0a0a0 !important;
+  }
+  /* Borders inside black box */
+  .box-black .border-border,
+  .box-black .border-border\/50,
+  .box-black [class*="border-border"] {
+    border-color: #2a2a2a !important;
+  }
+  /* Form inputs inside black box */
+  .box-black input,
+  .box-black textarea,
+  .box-black select {
+    background-color: #1a1a1a !important;
+    color: #f0f0f0 !important;
+    border-color: #333333 !important;
+  }
+  .box-black input::placeholder,
+  .box-black textarea::placeholder {
+    color: #666666 !important;
+  }
+  /* Separators inside black box */
+  .box-black hr,
+  .box-black [role="separator"],
+  .box-black [data-orientation] {
+    border-color: #2a2a2a !important;
+  }
+
+  /* ── WHITE BOX ── */
+  .box-white {
+    background-color: #ffffff !important;
+    color: #0d0d0d !important;
+    border: 1px solid #d8d8d8 !important;
+    box-shadow: 0 4px 32px 0 rgba(0, 0, 0, 0.08) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  /* All text tokens inside white box */
+  .box-white .text-foreground {
+    color: #0d0d0d !important;
+  }
+  .box-white .text-muted-foreground {
+    color: #555555 !important;
+  }
+  .box-white h1,
+  .box-white h2,
+  .box-white h3,
+  .box-white h4 {
+    color: #0d0d0d !important;
+  }
+  .box-white p,
+  .box-white span,
+  .box-white label {
+    color: inherit !important;
+  }
+  .box-white small {
+    color: #555555 !important;
+  }
+  /* Borders inside white box */
+  .box-white .border-border,
+  .box-white .border-border\/50,
+  .box-white [class*="border-border"] {
+    border-color: #d8d8d8 !important;
+  }
+  /* Form inputs inside white box */
+  .box-white input,
+  .box-white textarea,
+  .box-white select {
+    background-color: #f5f5f5 !important;
+    color: #0d0d0d !important;
+    border-color: #cccccc !important;
+  }
+  .box-white input::placeholder,
+  .box-white textarea::placeholder {
+    color: #999999 !important;
+  }
+  /* Separators inside white box */
+  .box-white hr,
+  .box-white [role="separator"],
+  .box-white [data-orientation] {
+    border-color: #e0e0e0 !important;
+  }
+
+  /* ── ConvertAll Studio: light background to make B&W boxes pop ── */
+  .convertall-studio {
+    background-color: transparent;
+  }
+
+  /* ── Auto-alternating fallback for glass-card without explicit box-black/box-white ── */
+  /* Any glass-card not already labelled gets white treatment as default */
+  .glass-card:not(.box-black):not(.box-white) {
+    background-color: #ffffff !important;
+    color: #0d0d0d !important;
+    border: 1px solid #d8d8d8 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .glass-card:not(.box-black):not(.box-white) .text-muted-foreground {
+    color: #555555 !important;
+  }
+  .glass-card:not(.box-black):not(.box-white) .text-foreground {
+    color: #0d0d0d !important;
+  }
+
+  /* ── Auto-alternating within the convertall-studio wrapper ── */
+  /* Unlabelled cards inside convertall-studio also alternate */
+  .convertall-studio
+    .glass-card:nth-child(odd):not(.box-black):not(.box-white) {
+    background-color: #ffffff !important;
+    color: #0d0d0d !important;
+    border: 1px solid #d8d8d8 !important;
+    box-shadow: 0 4px 32px 0 rgba(0, 0, 0, 0.06) !important;
+  }
+  .convertall-studio
+    .glass-card:nth-child(odd):not(.box-black):not(.box-white)
+    .text-muted-foreground {
+    color: #555555 !important;
+  }
+  .convertall-studio
+    .glass-card:nth-child(odd):not(.box-black):not(.box-white)
+    .text-foreground {
+    color: #0d0d0d !important;
+  }
+
+  .convertall-studio
+    .glass-card:nth-child(even):not(.box-black):not(.box-white) {
+    background-color: #0d0d0d !important;
+    color: #f0f0f0 !important;
+    border: 1px solid #1f1f1f !important;
+    box-shadow: 0 4px 32px 0 rgba(0, 0, 0, 0.5) !important;
+  }
+  .convertall-studio
+    .glass-card:nth-child(even):not(.box-black):not(.box-white)
+    .text-muted-foreground {
+    color: #a0a0a0 !important;
+  }
+  .convertall-studio
+    .glass-card:nth-child(even):not(.box-black):not(.box-white)
+    .text-foreground {
+    color: #f0f0f0 !important;
   }
 
   .tool-btn {

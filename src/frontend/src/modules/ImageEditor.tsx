@@ -222,7 +222,7 @@ export default function ImageEditor() {
         <div className="flex flex-col lg:flex-row gap-4 h-full">
           {/* Canvas Area */}
           <div className="flex-1 min-w-0">
-            <div className="glass-card p-4 space-y-3">
+            <div className="glass-card box-white p-4 space-y-3">
               {/* Toolbar */}
               <div className="flex items-center gap-2 flex-wrap">
                 <Button
@@ -420,7 +420,7 @@ export default function ImageEditor() {
 
           {/* Tools Panel */}
           <div className="w-full lg:w-72 flex-shrink-0">
-            <div className="glass-card overflow-hidden">
+            <div className="glass-card box-black overflow-hidden">
               {/* Panel Tabs */}
               <div className="flex overflow-x-auto scrollbar-thin border-b border-border/50">
                 {panels.map((p) => (

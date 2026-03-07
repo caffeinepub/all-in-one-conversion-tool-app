@@ -997,7 +997,7 @@ export default function PDFScanner() {
       )}
 
       {/* Upload area */}
-      <div className="glass-card p-6 flex flex-col items-center gap-4">
+      <div className="glass-card box-white p-6 flex flex-col items-center gap-4">
         <div className="flex items-center gap-2 text-primary">
           <ScanLine className="w-6 h-6" />
           <h2 className="text-lg font-semibold">PDF Scanner</h2>
@@ -1203,7 +1203,7 @@ export default function PDFScanner() {
       {scannedPages.length > 0 && (
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Thumbnails */}
-          <div className="glass-card p-4 flex flex-col gap-3 lg:w-48 shrink-0">
+          <div className="glass-card box-black p-4 flex flex-col gap-3 lg:w-48 shrink-0">
             <p className="text-sm font-medium text-muted-foreground">
               Pages ({scannedPages.length})
             </p>
@@ -1286,7 +1286,7 @@ export default function PDFScanner() {
 
           {/* Adjustment panel */}
           {selectedPage && (
-            <div className="glass-card p-4 flex flex-col gap-4 flex-1 min-w-0">
+            <div className="glass-card box-white p-4 flex flex-col gap-4 flex-1 min-w-0">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium">
                   Page{" "}
@@ -1375,7 +1375,7 @@ export default function PDFScanner() {
 
       {/* Convert & Download */}
       {scannedPages.length > 0 && (
-        <div className="glass-card p-4 flex flex-col gap-4">
+        <div className="glass-card box-black p-4 flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <div className="flex-1 flex flex-col gap-1">
               <label

@@ -165,7 +165,7 @@ export function ImageConverter() {
     <div className="flex flex-col lg:flex-row gap-6">
       {/* Left: Persistent Preview Panel */}
       <div className="lg:w-72 flex-shrink-0">
-        <div className="glass-card p-4 sticky top-4">
+        <div className="glass-card box-black p-4 sticky top-4">
           <p className="text-sm font-semibold text-foreground mb-3">
             {currentImage ? currentImage.name : "Preview"}
           </p>

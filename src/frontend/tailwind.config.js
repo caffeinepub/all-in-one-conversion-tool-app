@@ -18,6 +18,7 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         display: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Geist Mono', 'monospace'],
       },
       colors: {
         border: 'oklch(var(--border))',
@@ -67,6 +68,19 @@ export default {
           3: 'oklch(var(--chart-3))',
           4: 'oklch(var(--chart-4))',
           5: 'oklch(var(--chart-5))'
+        },
+        chess: {
+          light: 'var(--chess-light)',
+          dark: 'var(--chess-dark)',
+          'light-hover': 'var(--chess-light-hover)',
+          'dark-hover': 'var(--chess-dark-hover)',
+          selected: 'var(--chess-selected)',
+          lastmove: 'var(--chess-lastmove-light)',
+          check: 'var(--chess-check)',
+          border: 'var(--chess-border)',
+          label: 'var(--chess-label)',
+          'light-piece': 'var(--chess-light-piece)',
+          'dark-piece': 'var(--chess-dark-piece)',
         },
         sidebar: {
           DEFAULT: 'oklch(var(--sidebar))',

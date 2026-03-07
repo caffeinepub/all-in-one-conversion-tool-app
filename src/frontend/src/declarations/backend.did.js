@@ -8,35 +8,99 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const GameMode = IDL.Variant({
+  'vsAI' : IDL.Null,
+  'multiplayer' : IDL.Null,
+});
+export const Position = IDL.Record({ 'file' : IDL.Nat, 'rank' : IDL.Nat });
+export const PieceType = IDL.Variant({
+  'king' : IDL.Null,
+  'pawn' : IDL.Null,
+  'rook' : IDL.Null,
+  'queen' : IDL.Null,
+  'knight' : IDL.Null,
+  'bishop' : IDL.Null,
+});
+export const Piece = IDL.Record({
+  'pieceType' : PieceType,
+  'isWhite' : IDL.Bool,
+});
+export const Move = IDL.Record({
+  'to' : Position,
+  'from' : Position,
+  'captured' : IDL.Opt(Piece),
+  'piece' : Piece,
+});
+export const GameStatus = IDL.Variant({
+  'stalemate' : IDL.Null,
+  'draw' : IDL.Null,
+  'playing' : IDL.Null,
+  'checkmate' : IDL.Null,
+  'waiting' : IDL.Null,
+});
+export const Principal = IDL.Principal;
+export const GameState = IDL.Record({
+  'moves' : IDL.Vec(Move),
+  'mode' : GameMode,
+  'gameStatus' : GameStatus,
+  'player1' : Principal,
+  'player2' : IDL.Opt(Principal),
+  'turnWhite' : IDL.Bool,
+  'board' : IDL.Vec(IDL.Vec(IDL.Opt(Piece))),
+});
+
 export const idlService = IDL.Service({
-  'getAppInfo' : IDL.Func(
-      [],
-      [
-        IDL.Record({
-          'icon' : IDL.Vec(IDL.Nat8),
-          'name' : IDL.Text,
-          'version' : IDL.Text,
-        }),
-      ],
-      [],
-    ),
+  'createRoom' : IDL.Func([GameMode], [IDL.Text], []),
+  'getGameState' : IDL.Func([IDL.Text], [IDL.Opt(GameState)], ['query']),
+  'joinRoom' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
+  'makeMove' : IDL.Func([IDL.Text, Position, Position], [IDL.Bool], []),
+  'resetGame' : IDL.Func([IDL.Text], [IDL.Bool], []),
 });
 
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const GameMode = IDL.Variant({ 'vsAI' : IDL.Null, 'multiplayer' : IDL.Null });
+  const Position = IDL.Record({ 'file' : IDL.Nat, 'rank' : IDL.Nat });
+  const PieceType = IDL.Variant({
+    'king' : IDL.Null,
+    'pawn' : IDL.Null,
+    'rook' : IDL.Null,
+    'queen' : IDL.Null,
+    'knight' : IDL.Null,
+    'bishop' : IDL.Null,
+  });
+  const Piece = IDL.Record({ 'pieceType' : PieceType, 'isWhite' : IDL.Bool });
+  const Move = IDL.Record({
+    'to' : Position,
+    'from' : Position,
+    'captured' : IDL.Opt(Piece),
+    'piece' : Piece,
+  });
+  const GameStatus = IDL.Variant({
+    'stalemate' : IDL.Null,
+    'draw' : IDL.Null,
+    'playing' : IDL.Null,
+    'checkmate' : IDL.Null,
+    'waiting' : IDL.Null,
+  });
+  const Principal = IDL.Principal;
+  const GameState = IDL.Record({
+    'moves' : IDL.Vec(Move),
+    'mode' : GameMode,
+    'gameStatus' : GameStatus,
+    'player1' : Principal,
+    'player2' : IDL.Opt(Principal),
+    'turnWhite' : IDL.Bool,
+    'board' : IDL.Vec(IDL.Vec(IDL.Opt(Piece))),
+  });
+  
   return IDL.Service({
-    'getAppInfo' : IDL.Func(
-        [],
-        [
-          IDL.Record({
-            'icon' : IDL.Vec(IDL.Nat8),
-            'name' : IDL.Text,
-            'version' : IDL.Text,
-          }),
-        ],
-        [],
-      ),
+    'createRoom' : IDL.Func([GameMode], [IDL.Text], []),
+    'getGameState' : IDL.Func([IDL.Text], [IDL.Opt(GameState)], ['query']),
+    'joinRoom' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
+    'makeMove' : IDL.Func([IDL.Text, Position, Position], [IDL.Bool], []),
+    'resetGame' : IDL.Func([IDL.Text], [IDL.Bool], []),
   });
 };
 

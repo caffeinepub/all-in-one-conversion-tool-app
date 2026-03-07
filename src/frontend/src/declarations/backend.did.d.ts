@@ -10,11 +10,43 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export type GameMode = { 'vsAI' : null } |
+  { 'multiplayer' : null };
+export interface GameState {
+  'moves' : Array<Move>,
+  'mode' : GameMode,
+  'gameStatus' : GameStatus,
+  'player1' : Principal,
+  'player2' : [] | [Principal],
+  'turnWhite' : boolean,
+  'board' : Array<Array<[] | [Piece]>>,
+}
+export type GameStatus = { 'stalemate' : null } |
+  { 'draw' : null } |
+  { 'playing' : null } |
+  { 'checkmate' : null } |
+  { 'waiting' : null };
+export interface Move {
+  'to' : Position,
+  'from' : Position,
+  'captured' : [] | [Piece],
+  'piece' : Piece,
+}
+export interface Piece { 'pieceType' : PieceType, 'isWhite' : boolean }
+export type PieceType = { 'king' : null } |
+  { 'pawn' : null } |
+  { 'rook' : null } |
+  { 'queen' : null } |
+  { 'knight' : null } |
+  { 'bishop' : null };
+export interface Position { 'file' : bigint, 'rank' : bigint }
+export type Principal = Principal;
 export interface _SERVICE {
-  'getAppInfo' : ActorMethod<
-    [],
-    { 'icon' : Uint8Array, 'name' : string, 'version' : string }
-  >,
+  'createRoom' : ActorMethod<[GameMode], string>,
+  'getGameState' : ActorMethod<[string], [] | [GameState]>,
+  'joinRoom' : ActorMethod<[string], boolean>,
+  'makeMove' : ActorMethod<[string, Position, Position], boolean>,
+  'resetGame' : ActorMethod<[string], boolean>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

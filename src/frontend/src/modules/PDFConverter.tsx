@@ -67,7 +67,7 @@ export default function PDFConverter() {
       </div>
 
       {/* Tab content */}
-      <div className="glass-card p-4 md:p-6 rounded-2xl">
+      <div className="glass-card box-white p-4 md:p-6 rounded-2xl">
         {activeTab === "scanner" && <PDFScanner />}
 
         {activeTab === "files" && (

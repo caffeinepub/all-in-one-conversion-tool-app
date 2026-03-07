@@ -179,7 +179,7 @@ export default function CopyGridPanel({
 
   if (!processedDataUrl) {
     return (
-      <div className="glass-card p-6 flex items-center justify-center min-h-[300px]">
+      <div className="glass-card box-black p-6 flex items-center justify-center min-h-[300px]">
         <p className="text-muted-foreground text-sm text-center">
           Upload a photo to see the A4 sheet preview
         </p>
@@ -188,7 +188,7 @@ export default function CopyGridPanel({
   }
 
   return (
-    <div className="glass-card p-4 space-y-3">
+    <div className="glass-card box-black p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-foreground">
           A4 Sheet Preview

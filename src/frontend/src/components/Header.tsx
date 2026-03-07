@@ -16,12 +16,14 @@ interface HeaderProps {
   onOpenMultimedia?: () => void;
   isMultimedia?: boolean;
   onOpenConvertAll?: () => void;
+  onOpenChess?: () => void;
 }
 
 export default function Header({
   onOpenMultimedia,
   isMultimedia = false,
   onOpenConvertAll,
+  onOpenChess,
 }: HeaderProps) {
   const { theme, setTheme } = useTheme();
   const { isSuccess } = useAppInfo();
@@ -109,6 +111,14 @@ export default function Header({
                   {isMultimedia && (
                     <span className="ml-auto text-xs opacity-60">Active</span>
                   )}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  data-ocid="studio.chess.link"
+                  onClick={onOpenChess}
+                  className="cursor-pointer gap-2"
+                >
+                  <span className="text-base leading-none">♛</span>
+                  Chess Game
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

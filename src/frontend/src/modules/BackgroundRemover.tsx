@@ -360,7 +360,7 @@ export default function BackgroundRemover() {
           {/* ── LEFT SIDEBAR: controls ── */}
           <div className="flex flex-col gap-4 w-full lg:w-72 shrink-0">
             {/* Replace / remove image */}
-            <div className="glass-card p-4 rounded-xl">
+            <div className="glass-card box-white p-4 rounded-xl">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-semibold text-foreground">
                   Image
@@ -392,7 +392,7 @@ export default function BackgroundRemover() {
             </div>
 
             {/* Transform controls */}
-            <div className="glass-card p-4 rounded-xl">
+            <div className="glass-card box-black p-4 rounded-xl">
               <p className="text-sm font-semibold text-foreground mb-3">
                 Transform
               </p>
@@ -474,7 +474,7 @@ export default function BackgroundRemover() {
           <div className="flex flex-col gap-4 flex-1 min-w-0">
             {/* 1. COMPARISON WINDOW — top */}
             {resultDataUrl && originalDataUrl && (
-              <div className="glass-card rounded-xl overflow-hidden">
+              <div className="glass-card box-white rounded-xl overflow-hidden">
                 <div className="px-4 pt-4 pb-2">
                   <p className="text-sm font-semibold text-foreground">
                     Before / After Comparison
@@ -488,7 +488,7 @@ export default function BackgroundRemover() {
             )}
 
             {/* 2. BRUSH MODE PANEL — below comparison */}
-            <div className="glass-card rounded-xl p-4">
+            <div className="glass-card box-black rounded-xl p-4">
               <BrushToolPanel
                 brushActive={brushActive}
                 brushSize={brushSize}
@@ -504,7 +504,7 @@ export default function BackgroundRemover() {
             </div>
 
             {/* 3. CANVAS — stable, non-shifting container */}
-            <div className="glass-card rounded-xl overflow-hidden p-2">
+            <div className="glass-card box-white rounded-xl overflow-hidden p-2">
               <div
                 ref={containerRef}
                 className="relative flex items-center justify-center rounded-lg overflow-hidden"
