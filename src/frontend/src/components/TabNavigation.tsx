@@ -1,5 +1,10 @@
 import { CreditCard, FileText, Image, RefreshCw, Scissors } from "lucide-react";
-import type { TabId } from "../App";
+type TabId =
+  | "image-editor"
+  | "pdf-converter"
+  | "image-converter"
+  | "passport-photo"
+  | "bg-remover";
 
 interface Tab {
   id: TabId;

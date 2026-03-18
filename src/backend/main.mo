@@ -1,9 +1,10 @@
 import Map "mo:core/Map";
 import Text "mo:core/Text";
 import Nat "mo:core/Nat";
+import Array "mo:core/Array";
 import List "mo:core/List";
-import Principal "mo:core/Principal";
 
+import Principal "mo:core/Principal";
 
 
 actor {
@@ -56,7 +57,80 @@ actor {
     #draw;
   };
 
+  // ── WebRTC Signaling for Mobile Camera ──────────────────────────────────────
+
+  public type CamSession = {
+    offer : Text;
+    answer : ?Text;
+    desktopCandidates : [Text];
+    mobileCandidates : [Text];
+  };
+
   let games = Map.empty<Text, GameState>();
+  let camSessions = Map.empty<Text, CamSession>();
+
+  // Create a new camera session with an SDP offer from desktop
+  public shared func createCamSession(offer : Text) : async Text {
+    let sessionId = "CAM" # camSessions.size().toText();
+    let session : CamSession = {
+      offer;
+      answer = null;
+      desktopCandidates = [];
+      mobileCandidates = [];
+    };
+    camSessions.add(sessionId, session);
+    sessionId;
+  };
+
+  // Mobile sets the SDP answer
+  public shared func setCamAnswer(sessionId : Text, answer : Text) : async Bool {
+    switch (camSessions.get(sessionId)) {
+      case (null) { false };
+      case (?s) {
+        let updated : CamSession = {
+          offer = s.offer;
+          answer = ?answer;
+          desktopCandidates = s.desktopCandidates;
+          mobileCandidates = s.mobileCandidates;
+        };
+        camSessions.add(sessionId, updated);
+        true;
+      };
+    };
+  };
+
+  // Add an ICE candidate (fromMobile = true means mobile added it)
+  public shared func addCamIceCandidate(sessionId : Text, candidate : Text, fromMobile : Bool) : async Bool {
+    switch (camSessions.get(sessionId)) {
+      case (null) { false };
+      case (?s) {
+        let updated : CamSession = if (fromMobile) {
+          {
+            offer = s.offer;
+            answer = s.answer;
+            desktopCandidates = s.desktopCandidates;
+            mobileCandidates = s.mobileCandidates.concat([candidate]);
+          };
+        } else {
+          {
+            offer = s.offer;
+            answer = s.answer;
+            desktopCandidates = s.desktopCandidates.concat([candidate]);
+            mobileCandidates = s.mobileCandidates;
+          };
+        };
+        camSessions.add(sessionId, updated);
+        true;
+      };
+    };
+  };
+
+  // Query session state
+  public query func getCamSession(sessionId : Text) : async ?CamSession {
+    camSessions.get(sessionId);
+  };
+
+  // ── Chess ───────────────────────────────────────────────────────────────────
 
   public query ({ caller }) func getGameState(roomCode : Text) : async ?GameState {
     games.get(roomCode);

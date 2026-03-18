@@ -59,11 +59,13 @@ const tabs: MultimediaTab[] = [
 interface MultimediaAppProps {
   onBack?: () => void;
   onOpenConvertAll?: () => void;
+  onOpenChess?: () => void;
 }
 
 export default function MultimediaApp({
   onBack,
   onOpenConvertAll,
+  onOpenChess,
 }: MultimediaAppProps) {
   const [activeTab, setActiveTab] = useState<MultimediaTabId>("iptv-player");
 
@@ -78,6 +80,7 @@ export default function MultimediaApp({
         isMultimedia={true}
         onOpenMultimedia={undefined}
         onOpenConvertAll={onOpenConvertAll ?? onBack}
+        onOpenChess={onOpenChess}
       />
 
       {/* Tab Navigation */}

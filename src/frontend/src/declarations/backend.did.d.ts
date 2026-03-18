@@ -10,6 +10,12 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface CamSession {
+  'mobileCandidates' : Array<string>,
+  'offer' : string,
+  'desktopCandidates' : Array<string>,
+  'answer' : [] | [string],
+}
 export type GameMode = { 'vsAI' : null } |
   { 'multiplayer' : null };
 export interface GameState {
@@ -42,11 +48,15 @@ export type PieceType = { 'king' : null } |
 export interface Position { 'file' : bigint, 'rank' : bigint }
 export type Principal = Principal;
 export interface _SERVICE {
+  'addCamIceCandidate' : ActorMethod<[string, string, boolean], boolean>,
+  'createCamSession' : ActorMethod<[string], string>,
   'createRoom' : ActorMethod<[GameMode], string>,
+  'getCamSession' : ActorMethod<[string], [] | [CamSession]>,
   'getGameState' : ActorMethod<[string], [] | [GameState]>,
   'joinRoom' : ActorMethod<[string], boolean>,
   'makeMove' : ActorMethod<[string, Position, Position], boolean>,
   'resetGame' : ActorMethod<[string], boolean>,
+  'setCamAnswer' : ActorMethod<[string, string], boolean>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

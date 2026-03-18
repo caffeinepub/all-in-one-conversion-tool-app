@@ -7,6 +7,12 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
+export interface CamSession {
+    mobileCandidates: Array<string>;
+    offer: string;
+    desktopCandidates: Array<string>;
+    answer?: string;
+}
 export interface Move {
     to: Position;
     from: Position;
@@ -51,9 +57,13 @@ export enum PieceType {
     bishop = "bishop"
 }
 export interface backendInterface {
+    addCamIceCandidate(sessionId: string, candidate: string, fromMobile: boolean): Promise<boolean>;
+    createCamSession(offer: string): Promise<string>;
     createRoom(mode: GameMode): Promise<string>;
+    getCamSession(sessionId: string): Promise<CamSession | null>;
     getGameState(roomCode: string): Promise<GameState | null>;
     joinRoom(roomCode: string): Promise<boolean>;
     makeMove(roomCode: string, from: Position, to: Position): Promise<boolean>;
     resetGame(roomCode: string): Promise<boolean>;
+    setCamAnswer(sessionId: string, answer: string): Promise<boolean>;
 }

@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { useActor } from "@/hooks/useActor";
 import {
   Camera,
   CameraOff,
@@ -19,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import MobileCameraConnect from "./MobileCameraConnect";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -791,9 +793,270 @@ function LiveCameraWindow({
   );
 }
 
+// ── Mobile Camera Mode (when ?camSession=SESSION_ID detected) ─────────────────
+
+function MobileCameraMode({ sessionId }: { sessionId: string }) {
+  const { actor } = useActor();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const peerRef = useRef<RTCPeerConnection | null>(null);
+  const [status, setStatus] = useState<"loading" | "streaming" | "error">(
+    "loading",
+  );
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const processedCandidates = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!actor) return;
+    let cancelled = false;
+
+    async function setup() {
+      try {
+        if (!window.RTCPeerConnection) {
+          setErrorMsg("WebRTC is not supported in this browser.");
+          setStatus("error");
+          return;
+        }
+
+        // Get the SDP offer from the backend
+        const session = await actor!.getCamSession(sessionId);
+        if (!session) {
+          setErrorMsg("Session not found or expired.");
+          setStatus("error");
+          return;
+        }
+
+        const pc = new RTCPeerConnection({
+          iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+        });
+        peerRef.current = pc;
+
+        // Collect mobile ICE candidates
+        pc.onicecandidate = async (e) => {
+          if (e.candidate && actor) {
+            try {
+              await actor.addCamIceCandidate(
+                sessionId,
+                JSON.stringify(e.candidate),
+                true,
+              );
+            } catch {
+              // Ignore
+            }
+          }
+        };
+
+        // Set the desktop's offer
+        await pc.setRemoteDescription(
+          new RTCSessionDescription(JSON.parse(session.offer)),
+        );
+
+        // Get mobile camera stream
+        let mediaStream: MediaStream | null = null;
+        const constraintChain: MediaStreamConstraints[] = [
+          {
+            video: {
+              facingMode: { ideal: "environment" },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+            },
+            audio: false,
+          },
+          { video: { facingMode: { ideal: "environment" } }, audio: false },
+          { video: true, audio: false },
+        ];
+
+        for (const constraints of constraintChain) {
+          if (cancelled) return;
+          try {
+            mediaStream =
+              await navigator.mediaDevices.getUserMedia(constraints);
+            break;
+          } catch {
+            // Try next
+          }
+        }
+
+        if (!mediaStream) {
+          setErrorMsg("Could not access camera on this device.");
+          setStatus("error");
+          return;
+        }
+
+        if (cancelled) {
+          for (const t of mediaStream.getTracks()) t.stop();
+          return;
+        }
+
+        streamRef.current = mediaStream;
+
+        // Show local preview
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+          videoRef.current.muted = true;
+          videoRef.current.playsInline = true;
+          videoRef.current.play().catch(() => {});
+        }
+
+        // Add video track to peer connection
+        for (const track of mediaStream.getTracks()) {
+          pc.addTrack(track, mediaStream);
+        }
+
+        // Create and set local answer
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+
+        // Store answer in backend
+        await actor!.setCamAnswer(sessionId, JSON.stringify(answer));
+
+        if (!cancelled) setStatus("streaming");
+
+        // Poll for desktop ICE candidates
+        pollRef.current = setInterval(async () => {
+          if (!actor || cancelled) return;
+          try {
+            const s = await actor.getCamSession(sessionId);
+            if (!s) return;
+            for (const candStr of s.desktopCandidates) {
+              if (!processedCandidates.current.has(candStr)) {
+                processedCandidates.current.add(candStr);
+                try {
+                  await pc.addIceCandidate(
+                    new RTCIceCandidate(JSON.parse(candStr)),
+                  );
+                } catch {
+                  // Ignore bad candidates
+                }
+              }
+            }
+          } catch {
+            // Ignore polling errors
+          }
+        }, 1500);
+      } catch (err: any) {
+        if (!cancelled) {
+          setErrorMsg(err?.message || "Failed to start mobile camera");
+          setStatus("error");
+        }
+      }
+    }
+
+    setup();
+
+    return () => {
+      cancelled = true;
+      if (pollRef.current) clearInterval(pollRef.current);
+      if (streamRef.current)
+        for (const t of streamRef.current.getTracks()) t.stop();
+      if (peerRef.current) peerRef.current.close();
+    };
+  }, [actor, sessionId]);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex flex-col bg-black">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-zinc-900/90 border-b border-zinc-700">
+        <div className="flex items-center gap-2">
+          <Camera className="w-5 h-5 text-teal-400" />
+          <span className="text-white font-semibold text-sm">
+            Mobile Camera Mode
+          </span>
+        </div>
+        {status === "streaming" && (
+          <div className="flex items-center gap-1.5 bg-red-600/90 px-2.5 py-1 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+            <span className="text-white text-xs font-medium">STREAMING</span>
+          </div>
+        )}
+        {status === "loading" && (
+          <div className="flex items-center gap-1.5 px-2.5 py-1">
+            <span className="w-3.5 h-3.5 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin" />
+            <span className="text-amber-400 text-xs">Connecting...</span>
+          </div>
+        )}
+      </div>
+
+      {/* Camera viewfinder */}
+      <div className="flex-1 relative bg-black flex items-center justify-center">
+        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+        <video
+          ref={videoRef}
+          className="w-full h-full object-cover"
+          autoPlay
+          playsInline
+          muted
+        />
+
+        {/* Viewfinder overlay */}
+        {status === "streaming" && (
+          <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+            <div
+              className="border-2 border-teal-400/70 rounded-xl"
+              style={{
+                width: "85%",
+                height: "75%",
+                boxShadow: "0 0 0 9999px rgba(0,0,0,0.3)",
+              }}
+            />
+          </div>
+        )}
+
+        {/* Loading state */}
+        {status === "loading" && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/60">
+            <div className="w-12 h-12 border-2 border-teal-400/30 border-t-teal-400 rounded-full animate-spin" />
+            <p className="text-white text-sm">
+              Starting camera and connecting...
+            </p>
+          </div>
+        )}
+
+        {/* Error state */}
+        {status === "error" && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 bg-zinc-900">
+            <CameraOff className="w-16 h-16 text-zinc-500" />
+            <div className="text-center">
+              <p className="text-white font-semibold mb-2">Connection Failed</p>
+              <p className="text-zinc-400 text-sm leading-relaxed">
+                {errorMsg}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Status bar */}
+      <div className="px-4 py-4 bg-zinc-900/90 border-t border-zinc-700">
+        {status === "streaming" ? (
+          <div className="flex flex-col items-center gap-1.5">
+            <p className="text-green-400 font-semibold text-sm flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              Camera Active — Streaming to Desktop
+            </p>
+            <p className="text-zinc-400 text-xs text-center">
+              Your camera is streaming live to the desktop scanner. Keep this
+              page open.
+            </p>
+          </div>
+        ) : status === "loading" ? (
+          <p className="text-amber-400 text-xs text-center">
+            Setting up WebRTC connection to desktop...
+          </p>
+        ) : (
+          <p className="text-red-400 text-xs text-center">
+            Connection failed. Close this page and try again from the desktop.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main Component ───────────────────────────────────────────────────────────
 
-export default function PDFScanner() {
+function PDFScannerInner() {
   // File input for "Choose from Files"
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Camera input fallback for devices that don't support getUserMedia
@@ -1199,6 +1462,9 @@ export default function PDFScanner() {
         </p>
       </div>
 
+      {/* Mobile Camera Connect */}
+      <MobileCameraConnect onCapture={processImageDataUrl} />
+
       {/* Pages list + adjustment panel */}
       {scannedPages.length > 0 && (
         <div className="flex flex-col lg:flex-row gap-4">
@@ -1438,4 +1704,18 @@ export default function PDFScanner() {
       )}
     </div>
   );
+}
+
+// ── Exported Wrapper ─────────────────────────────────────────────────────────
+// Detects ?camSession= before rendering hooks to avoid conditional-hook violation.
+
+export default function PDFScanner() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const camSessionParam = urlParams.get("camSession");
+
+  if (camSessionParam) {
+    return <MobileCameraMode sessionId={camSessionParam} />;
+  }
+
+  return <PDFScannerInner />;
 }

@@ -12,6 +12,12 @@ export const GameMode = IDL.Variant({
   'vsAI' : IDL.Null,
   'multiplayer' : IDL.Null,
 });
+export const CamSession = IDL.Record({
+  'mobileCandidates' : IDL.Vec(IDL.Text),
+  'offer' : IDL.Text,
+  'desktopCandidates' : IDL.Vec(IDL.Text),
+  'answer' : IDL.Opt(IDL.Text),
+});
 export const Position = IDL.Record({ 'file' : IDL.Nat, 'rank' : IDL.Nat });
 export const PieceType = IDL.Variant({
   'king' : IDL.Null,
@@ -50,17 +56,31 @@ export const GameState = IDL.Record({
 });
 
 export const idlService = IDL.Service({
+  'addCamIceCandidate' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Bool],
+      [IDL.Bool],
+      [],
+    ),
+  'createCamSession' : IDL.Func([IDL.Text], [IDL.Text], []),
   'createRoom' : IDL.Func([GameMode], [IDL.Text], []),
+  'getCamSession' : IDL.Func([IDL.Text], [IDL.Opt(CamSession)], ['query']),
   'getGameState' : IDL.Func([IDL.Text], [IDL.Opt(GameState)], ['query']),
   'joinRoom' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
   'makeMove' : IDL.Func([IDL.Text, Position, Position], [IDL.Bool], []),
   'resetGame' : IDL.Func([IDL.Text], [IDL.Bool], []),
+  'setCamAnswer' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
 });
 
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
   const GameMode = IDL.Variant({ 'vsAI' : IDL.Null, 'multiplayer' : IDL.Null });
+  const CamSession = IDL.Record({
+    'mobileCandidates' : IDL.Vec(IDL.Text),
+    'offer' : IDL.Text,
+    'desktopCandidates' : IDL.Vec(IDL.Text),
+    'answer' : IDL.Opt(IDL.Text),
+  });
   const Position = IDL.Record({ 'file' : IDL.Nat, 'rank' : IDL.Nat });
   const PieceType = IDL.Variant({
     'king' : IDL.Null,
@@ -96,11 +116,19 @@ export const idlFactory = ({ IDL }) => {
   });
   
   return IDL.Service({
+    'addCamIceCandidate' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Bool],
+        [IDL.Bool],
+        [],
+      ),
+    'createCamSession' : IDL.Func([IDL.Text], [IDL.Text], []),
     'createRoom' : IDL.Func([GameMode], [IDL.Text], []),
+    'getCamSession' : IDL.Func([IDL.Text], [IDL.Opt(CamSession)], ['query']),
     'getGameState' : IDL.Func([IDL.Text], [IDL.Opt(GameState)], ['query']),
     'joinRoom' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
     'makeMove' : IDL.Func([IDL.Text, Position, Position], [IDL.Bool], []),
     'resetGame' : IDL.Func([IDL.Text], [IDL.Bool], []),
+    'setCamAnswer' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
   });
 };
 

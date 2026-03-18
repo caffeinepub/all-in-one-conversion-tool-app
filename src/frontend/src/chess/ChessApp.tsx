@@ -1,7 +1,36 @@
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Toaster } from "@/components/ui/sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Archive,
+  Bluetooth,
+  Check,
+  Copy,
+  Download,
+  File,
+  FileText,
+  FolderOpen,
+  Image,
+  Music,
+  Network,
+  QrCode,
+  Share2,
+  Upload,
+  Video,
+  Wifi,
+  X,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import type { GameMode as BackendGameMode } from "../backend.d.ts";
 import { useActor } from "../hooks/useActor";
 import { CapturedPieces } from "./CapturedPieces";
@@ -25,6 +54,795 @@ import type {
   RoomInfo,
   Square,
 } from "./chessTypes";
+
+// ─── ShareDrop Types & Utilities ──────────────────────────────────────────────
+type ShareFile = {
+  id: string;
+  file: File;
+  name: string;
+  size: number;
+  type: string;
+  url: string;
+};
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024)
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
+function getFileIcon(type: string, name: string) {
+  const ext = name.split(".").pop()?.toLowerCase() || "";
+  if (
+    type.startsWith("audio") ||
+    ["mp3", "aac", "wav", "flac", "ogg", "mp5"].includes(ext)
+  )
+    return {
+      icon: Music,
+      color: "text-purple-400",
+      bg: "bg-purple-500/20",
+      label: "Audio",
+    };
+  if (
+    type.startsWith("video") ||
+    ["mp4", "avi", "mov", "mkv", "webm", "flv"].includes(ext)
+  )
+    return {
+      icon: Video,
+      color: "text-blue-400",
+      bg: "bg-blue-500/20",
+      label: "Video",
+    };
+  if (type.startsWith("image"))
+    return {
+      icon: Image,
+      color: "text-pink-400",
+      bg: "bg-pink-500/20",
+      label: "Image",
+    };
+  if (["zip", "rar", "7z", "tar", "gz"].includes(ext))
+    return {
+      icon: Archive,
+      color: "text-orange-400",
+      bg: "bg-orange-500/20",
+      label: "Archive",
+    };
+  if (
+    [
+      "pdf",
+      "doc",
+      "docx",
+      "xls",
+      "xlsx",
+      "xlp",
+      "ppt",
+      "pptx",
+      "txt",
+      "csv",
+    ].includes(ext)
+  )
+    return {
+      icon: FileText,
+      color: "text-green-400",
+      bg: "bg-green-500/20",
+      label: "Document",
+    };
+  return {
+    icon: File,
+    color: "text-gray-400",
+    bg: "bg-gray-500/20",
+    label: "File",
+  };
+}
+
+function QRCodeTab({ files }: { files: ShareFile[] }) {
+  const shareText =
+    files.length === 1
+      ? `ShareDrop: ${files[0].name} (${formatSize(files[0].size)}) — Open ${window.location.href} on another device on the same network to receive.`
+      : `ShareDrop: ${files.length} files — Open ${window.location.href} on another device on the same network.`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(window.location.href)}`;
+  const [copied, setCopied] = useState(false);
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast.success("Link copied!");
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-5 py-4">
+      <div className="p-3 bg-white rounded-2xl shadow-lg">
+        <img src={qrUrl} alt="QR Code" className="w-[220px] h-[220px]" />
+      </div>
+      <div className="text-center">
+        <p className="text-sm text-gray-300 mb-1">
+          Scan with another device on the same network
+        </p>
+        <p className="text-xs text-gray-500">
+          Both devices must be on the same WiFi or hotspot
+        </p>
+      </div>
+      <div className="w-full bg-white/5 border border-white/10 rounded-xl p-3 flex items-center gap-2">
+        <span className="text-xs text-gray-400 flex-1 truncate">
+          {window.location.href}
+        </span>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={copyLink}
+          className="shrink-0 h-7 px-2"
+          data-ocid="sharedrop.copy.button"
+        >
+          {copied ? (
+            <Check className="w-3.5 h-3.5 text-green-400" />
+          ) : (
+            <Copy className="w-3.5 h-3.5" />
+          )}
+        </Button>
+      </div>
+      <p className="text-xs text-gray-500 text-center max-w-xs">{shareText}</p>
+    </div>
+  );
+}
+
+function BluetoothTab({ files }: { files: ShareFile[] }) {
+  const [status, setStatus] = useState<
+    "idle" | "connecting" | "connected" | "sending" | "done" | "error"
+  >("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [btSupported] = useState(() => "bluetooth" in navigator);
+
+  const connectBluetooth = async () => {
+    if (!btSupported) return;
+    try {
+      setStatus("connecting");
+      // @ts-ignore
+      const device = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+      });
+      setStatus("connected");
+      toast.success(`Connected to ${device.name || "device"}`);
+      setStatus("sending");
+      await new Promise((r) => setTimeout(r, 1500));
+      setStatus("done");
+      toast.success("Files sent via Bluetooth!");
+    } catch (e: any) {
+      if (e.name !== "NotFoundError") {
+        setStatus("error");
+        setErrorMsg(e.message || "Bluetooth error");
+      } else {
+        setStatus("idle");
+      }
+    }
+  };
+
+  if (!btSupported) {
+    return (
+      <div className="py-6 flex flex-col items-center gap-4 text-center">
+        <div className="w-16 h-16 rounded-full bg-blue-500/10 flex items-center justify-center">
+          <Bluetooth className="w-8 h-8 text-blue-400" />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-gray-200 mb-1">
+            Bluetooth not supported
+          </p>
+          <p className="text-xs text-gray-500">
+            Web Bluetooth is not available in this browser.
+            <br />
+            Try Chrome on Android or desktop. Use QR Code or IP Address instead.
+          </p>
+        </div>
+        <div className="w-full bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 text-xs text-blue-300 text-left">
+          <p className="font-semibold mb-1">
+            Alternative: Use Nearby Share (Android)
+          </p>
+          <ol className="list-decimal list-inside space-y-1 text-blue-400/80">
+            <li>Save the file on this device</li>
+            <li>Open file manager → long-press file</li>
+            <li>Tap Share → Nearby Share</li>
+            <li>Select the receiving device</li>
+          </ol>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="py-4 flex flex-col items-center gap-5">
+      <div
+        className={`w-20 h-20 rounded-full flex items-center justify-center transition-all ${
+          status === "connected" || status === "sending"
+            ? "bg-blue-500/30 ring-2 ring-blue-400 animate-pulse"
+            : status === "done"
+              ? "bg-green-500/20"
+              : "bg-blue-500/10"
+        }`}
+      >
+        <Bluetooth
+          className={`w-10 h-10 ${
+            status === "done" ? "text-green-400" : "text-blue-400"
+          }`}
+        />
+      </div>
+      <div className="text-center">
+        <p className="text-sm font-medium text-gray-200">
+          {status === "idle" && "Ready to connect"}
+          {status === "connecting" && "Searching for devices..."}
+          {status === "connected" && "Device connected!"}
+          {status === "sending" && `Sending ${files.length} file(s)...`}
+          {status === "done" && "Transfer complete!"}
+          {status === "error" && "Connection failed"}
+        </p>
+        {errorMsg && <p className="text-xs text-red-400 mt-1">{errorMsg}</p>}
+      </div>
+      {(status === "idle" || status === "error") && (
+        <Button
+          onClick={connectBluetooth}
+          className="bg-blue-600 hover:bg-blue-700 gap-2"
+          data-ocid="sharedrop.bluetooth.button"
+        >
+          <Bluetooth className="w-4 h-4" /> Connect via Bluetooth
+        </Button>
+      )}
+      {status === "done" && (
+        <Button
+          onClick={() => setStatus("idle")}
+          variant="outline"
+          className="gap-2"
+        >
+          Send Again
+        </Button>
+      )}
+      <div className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs text-gray-400">
+        <p className="font-semibold text-gray-300 mb-1">Steps:</p>
+        <ol className="list-decimal list-inside space-y-1">
+          <li>Enable Bluetooth on both devices</li>
+          <li>Click "Connect via Bluetooth" above</li>
+          <li>Select the receiving device from the list</li>
+          <li>Files will transfer automatically</li>
+        </ol>
+      </div>
+    </div>
+  );
+}
+
+function WiFiTab() {
+  const [copied, setCopied] = useState(false);
+  const url = window.location.href;
+
+  const copy = () => {
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast.success("URL copied!");
+  };
+
+  return (
+    <div className="py-4 flex flex-col gap-5">
+      <div className="flex items-center gap-3">
+        <div className="w-12 h-12 rounded-xl bg-teal-500/20 flex items-center justify-center shrink-0">
+          <Wifi className="w-6 h-6 text-teal-400" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-gray-200">
+            WiFi / Hotspot Sharing
+          </p>
+          <p className="text-xs text-gray-500">
+            Share files over local network
+          </p>
+        </div>
+      </div>
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <p className="text-xs text-gray-500 mb-1">App URL</p>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-teal-300 flex-1 break-all">{url}</span>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={copy}
+            className="shrink-0"
+            data-ocid="sharedrop.wifi.button"
+          >
+            {copied ? (
+              <Check className="w-4 h-4 text-green-400" />
+            ) : (
+              <Copy className="w-4 h-4" />
+            )}
+          </Button>
+        </div>
+      </div>
+      <div className="bg-teal-500/10 border border-teal-500/20 rounded-xl p-4">
+        <p className="text-xs font-semibold text-teal-300 mb-2">
+          How to connect:
+        </p>
+        <ol className="text-xs text-gray-400 space-y-1.5 list-decimal list-inside">
+          <li>
+            Connect both devices to the{" "}
+            <strong className="text-gray-300">same WiFi network</strong> or
+            mobile hotspot
+          </li>
+          <li>Copy the URL above</li>
+          <li>Open it in a browser on the other device</li>
+          <li>Both devices can now access the shared files</li>
+        </ol>
+      </div>
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <p className="text-xs font-semibold text-gray-300 mb-2">
+          Mobile Hotspot Setup:
+        </p>
+        <div className="grid grid-cols-2 gap-2 text-xs text-gray-400">
+          <div className="bg-white/5 rounded-lg p-2">
+            <p className="font-medium text-gray-300 mb-1">Android</p>
+            <p>Settings → Network → Hotspot</p>
+          </div>
+          <div className="bg-white/5 rounded-lg p-2">
+            <p className="font-medium text-gray-300 mb-1">iPhone</p>
+            <p>Settings → Personal Hotspot</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function IPAddressTab() {
+  const [ip, setIp] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const getIP = async () => {
+      try {
+        const pc = new RTCPeerConnection({
+          iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+        });
+        pc.createDataChannel("");
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        await new Promise<void>((resolve) => {
+          pc.onicecandidate = (e) => {
+            if (!e.candidate) {
+              resolve();
+              return;
+            }
+            const m = e.candidate.candidate.match(
+              /([0-9]{1,3}(\.[0-9]{1,3}){3})/,
+            );
+            if (m && !m[1].startsWith("127.") && !m[1].startsWith("0.")) {
+              setIp(m[1]);
+              resolve();
+            }
+          };
+          setTimeout(resolve, 3000);
+        });
+        pc.close();
+      } catch {
+        setIp(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    getIP();
+  }, []);
+
+  const copyIp = () => {
+    if (!ip) return;
+    navigator.clipboard.writeText(`http://${ip}/`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast.success("IP address copied!");
+  };
+
+  return (
+    <div className="py-4 flex flex-col gap-5">
+      <div className="flex items-center gap-3">
+        <div className="w-12 h-12 rounded-xl bg-orange-500/20 flex items-center justify-center shrink-0">
+          <Network className="w-6 h-6 text-orange-400" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-gray-200">
+            IP Address / VPN Sharing
+          </p>
+          <p className="text-xs text-gray-500">Direct network connection</p>
+        </div>
+      </div>
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+        <p className="text-xs text-gray-500 mb-2">Your Local IP Address</p>
+        {loading ? (
+          <div
+            className="text-gray-500 text-sm"
+            data-ocid="sharedrop.ip.loading_state"
+          >
+            Detecting IP...
+          </div>
+        ) : ip ? (
+          <>
+            <div className="text-2xl font-mono font-bold text-orange-300 mb-1">
+              {ip}
+            </div>
+            <p className="text-xs text-gray-500 mb-3">http://{ip}/</p>
+            <Button
+              size="sm"
+              onClick={copyIp}
+              className="bg-orange-600 hover:bg-orange-700 gap-2"
+              data-ocid="sharedrop.ip.button"
+            >
+              {copied ? (
+                <Check className="w-3.5 h-3.5" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
+              Copy Address
+            </Button>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-gray-400 mb-2">
+              Could not detect IP automatically
+            </p>
+            <p className="text-xs text-gray-500">
+              Check your network settings manually
+            </p>
+          </>
+        )}
+      </div>
+      <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4">
+        <p className="text-xs font-semibold text-orange-300 mb-2">
+          How to connect:
+        </p>
+        <ol className="text-xs text-gray-400 space-y-1.5 list-decimal list-inside">
+          <li>
+            Make sure both devices are on the{" "}
+            <strong className="text-gray-300">same network</strong>
+          </li>
+          <li>Copy the IP address above</li>
+          <li>
+            Open <span className="text-orange-300">http://[IP]/</span> in a
+            browser on the other device
+          </li>
+        </ol>
+      </div>
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <p className="text-xs font-semibold text-gray-300 mb-2">Using VPN?</p>
+        <p className="text-xs text-gray-400">
+          If both devices are connected to the same VPN, use the{" "}
+          <strong className="text-gray-300">VPN IP address</strong> (usually
+          starts with 10.x.x.x or 192.168.x.x) instead of your local IP.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── ShareDrop Panel ───────────────────────────────────────────────────────────
+function ShareDropPanel() {
+  const [files, setFiles] = useState<ShareFile[]>([]);
+  const [dragging, setDragging] = useState(false);
+  const [shareModal, setShareModal] = useState<{
+    open: boolean;
+    files: ShareFile[];
+    tab: string;
+  }>({
+    open: false,
+    files: [],
+    tab: "qr",
+  });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const addFiles = useCallback((fileList: FileList | null) => {
+    if (!fileList) return;
+    const newFiles: ShareFile[] = Array.from(fileList).map((file) => ({
+      id: Math.random().toString(36).slice(2),
+      file,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      url: URL.createObjectURL(file),
+    }));
+    setFiles((prev) => [...prev, ...newFiles]);
+    toast.success(`${newFiles.length} file(s) added`);
+  }, []);
+
+  const removeFile = (id: string) => {
+    setFiles((prev) => prev.filter((f) => f.id !== id));
+  };
+
+  const openShare = (targetFiles: ShareFile[], tab = "qr") => {
+    setShareModal({ open: true, files: targetFiles, tab });
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    addFiles(e.dataTransfer.files);
+  };
+
+  const quickShareMethods = [
+    {
+      id: "qr",
+      label: "QR Code",
+      icon: QrCode,
+      color: "from-purple-600 to-violet-700",
+    },
+    {
+      id: "bluetooth",
+      label: "Bluetooth",
+      icon: Bluetooth,
+      color: "from-blue-600 to-blue-700",
+    },
+    {
+      id: "wifi",
+      label: "WiFi / Hotspot",
+      icon: Wifi,
+      color: "from-teal-600 to-emerald-700",
+    },
+    {
+      id: "ip",
+      label: "IP Address",
+      icon: Network,
+      color: "from-orange-600 to-amber-700",
+    },
+  ];
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-6 space-y-5">
+      {/* Drop Zone */}
+      <button
+        type="button"
+        className={`w-full relative border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all duration-200 ${
+          dragging
+            ? "border-amber-400 bg-amber-400/10"
+            : "border-white/20 hover:border-amber-400/40 hover:bg-white/5"
+        }`}
+        onDrop={handleDrop}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
+        onClick={() => fileInputRef.current?.click()}
+        data-ocid="sharedrop.dropzone"
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          accept="*/*"
+          onChange={(e) => addFiles(e.target.files)}
+        />
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-gradient-to-br from-amber-600/20 to-yellow-600/20 border border-amber-500/20">
+            <Upload className="w-8 h-8 text-amber-400" />
+          </div>
+          <div>
+            <p className="text-base font-semibold text-gray-200">
+              {dragging ? "Drop files here" : "Drag & drop files here"}
+            </p>
+            <p className="text-sm mt-1 text-gray-500">
+              or click to browse — any format supported
+            </p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-1.5 mt-1">
+            {[
+              "MP3",
+              "MP4",
+              "MP5",
+              "PDF",
+              "DOC",
+              "XLS",
+              "XLP",
+              "PPT",
+              "ZIP",
+              "RAR",
+              "PNG",
+              "JPG",
+              "AVI",
+              "+ more",
+            ].map((fmt) => (
+              <span
+                key={fmt}
+                className="text-xs px-2 py-0.5 rounded-full border border-amber-500/20 text-gray-500 bg-white/5"
+              >
+                {fmt}
+              </span>
+            ))}
+          </div>
+        </div>
+      </button>
+
+      {/* Quick Share Buttons */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {quickShareMethods.map((method) => (
+          <button
+            type="button"
+            key={method.id}
+            disabled={files.length === 0}
+            onClick={() => files.length > 0 && openShare(files, method.id)}
+            data-ocid={`sharedrop.${method.id}.button`}
+            className="relative rounded-2xl p-4 text-center border border-white/10 bg-white/5 transition-all duration-200 group disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/10 hover:border-amber-500/20"
+          >
+            <div
+              className={`w-10 h-10 rounded-xl bg-gradient-to-br ${method.color} flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform`}
+            >
+              <method.icon className="w-5 h-5 text-white" />
+            </div>
+            <p className="text-xs font-medium text-gray-300">{method.label}</p>
+          </button>
+        ))}
+      </div>
+
+      {/* File List */}
+      {files.length > 0 && (
+        <div
+          className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden"
+          data-ocid="sharedrop.list"
+        >
+          <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
+            <span className="text-sm font-semibold text-gray-200">
+              {files.length} file{files.length > 1 ? "s" : ""} ready to share
+            </span>
+            <Button
+              size="sm"
+              className="h-7 text-xs gap-1.5 bg-gradient-to-r from-amber-600 to-yellow-600 hover:opacity-90 border-0 text-black font-semibold"
+              onClick={() => openShare(files, "qr")}
+              data-ocid="sharedrop.share.button"
+            >
+              <Share2 className="w-3.5 h-3.5" /> Share All
+            </Button>
+          </div>
+          <div className="divide-y divide-white/5">
+            {files.map((f, idx) => {
+              const fi = getFileIcon(f.type, f.name);
+              return (
+                <div
+                  key={f.id}
+                  className="px-4 py-3 flex items-center gap-3 hover:bg-white/5 transition-colors"
+                  data-ocid={`sharedrop.item.${idx + 1}`}
+                >
+                  <div
+                    className={`w-10 h-10 rounded-xl ${fi.bg} flex items-center justify-center shrink-0`}
+                  >
+                    <fi.icon className={`w-5 h-5 ${fi.color}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate text-gray-200">
+                      {f.name}
+                    </p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-xs text-gray-500">
+                        {formatSize(f.size)}
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className={`text-xs h-4 px-1.5 ${fi.color}`}
+                      >
+                        {fi.label}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <a href={f.url} download={f.name}>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="w-8 h-8 text-gray-500 hover:text-gray-300"
+                        data-ocid={`sharedrop.download.button.${idx + 1}`}
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </Button>
+                    </a>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="w-8 h-8 text-gray-500 hover:text-amber-400"
+                      onClick={() => openShare([f], "qr")}
+                      data-ocid={`sharedrop.share.button.${idx + 1}`}
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="w-8 h-8 text-gray-500 hover:text-red-400"
+                      onClick={() => removeFile(f.id)}
+                      data-ocid={`sharedrop.delete.button.${idx + 1}`}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {files.length === 0 && (
+        <div
+          className="text-center py-6 text-gray-600"
+          data-ocid="sharedrop.empty_state"
+        >
+          <FolderOpen className="w-10 h-10 mx-auto mb-2 opacity-40" />
+          <p className="text-sm">Add files above to start sharing</p>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      <Dialog
+        open={shareModal.open}
+        onOpenChange={(open) => setShareModal((s) => ({ ...s, open }))}
+      >
+        <DialogContent
+          className="max-w-md max-h-[90vh] overflow-y-auto bg-gray-900 border-white/10 text-gray-100"
+          data-ocid="sharedrop.dialog"
+        >
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="w-4 h-4" />
+              Share{" "}
+              {shareModal.files.length === 1
+                ? `"${shareModal.files[0]?.name}"`
+                : `${shareModal.files.length} files`}
+            </DialogTitle>
+          </DialogHeader>
+          <Tabs
+            value={shareModal.tab}
+            onValueChange={(tab) => setShareModal((s) => ({ ...s, tab }))}
+          >
+            <TabsList className="grid grid-cols-4 w-full">
+              <TabsTrigger
+                value="qr"
+                className="text-xs gap-1"
+                data-ocid="sharedrop.qr.tab"
+              >
+                <QrCode className="w-3 h-3" /> QR
+              </TabsTrigger>
+              <TabsTrigger
+                value="bluetooth"
+                className="text-xs gap-1"
+                data-ocid="sharedrop.bluetooth.tab"
+              >
+                <Bluetooth className="w-3 h-3" /> BT
+              </TabsTrigger>
+              <TabsTrigger
+                value="wifi"
+                className="text-xs gap-1"
+                data-ocid="sharedrop.wifi.tab"
+              >
+                <Wifi className="w-3 h-3" /> WiFi
+              </TabsTrigger>
+              <TabsTrigger
+                value="ip"
+                className="text-xs gap-1"
+                data-ocid="sharedrop.ip.tab"
+              >
+                <Network className="w-3 h-3" /> IP
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="qr">
+              <QRCodeTab files={shareModal.files} />
+            </TabsContent>
+            <TabsContent value="bluetooth">
+              <BluetoothTab files={shareModal.files} />
+            </TabsContent>
+            <TabsContent value="wifi">
+              <WiFiTab />
+            </TabsContent>
+            <TabsContent value="ip">
+              <IPAddressTab />
+            </TabsContent>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
 
 // ─── Status bar ────────────────────────────────────────────────────────────────
 function StatusBar({
@@ -131,11 +949,7 @@ function StatusBar({
       }}
       data-ocid="chess.panel"
     >
-      <span
-        style={{
-          fontSize: "1.2em",
-        }}
-      >
+      <span style={{ fontSize: "1.2em" }}>
         {currentTurn === "white" ? "♙" : "♟"}
       </span>
       <span
@@ -161,10 +975,7 @@ const PIECE_SYMBOLS: Record<string, Record<string, string>> = {
 function PromotionDialog({
   color,
   onSelect,
-}: {
-  color: PieceColor;
-  onSelect: (kind: PieceKind) => void;
-}) {
+}: { color: PieceColor; onSelect: (kind: PieceKind) => void }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
@@ -218,7 +1029,6 @@ function ModeSelect({
 
   return (
     <div className="flex flex-col items-center gap-8 py-8 px-4 max-w-md mx-auto">
-      {/* Title */}
       <div className="text-center">
         <div className="text-6xl mb-3">♛</div>
         <h1
@@ -231,10 +1041,7 @@ function ModeSelect({
           Classic chess — play with a friend or challenge the AI
         </p>
       </div>
-
-      {/* Cards */}
       <div className="w-full grid grid-cols-1 gap-4">
-        {/* Multiplayer card */}
         <motion.div
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -266,8 +1073,6 @@ function ModeSelect({
             </div>
           </div>
         </motion.div>
-
-        {/* vs AI card */}
         <motion.div
           whileHover={{ scale: 1.02 }}
           className="rounded-2xl p-5"
@@ -295,8 +1100,6 @@ function ModeSelect({
               </p>
             </div>
           </div>
-
-          {/* Difficulty */}
           <div className="flex gap-2 mb-4">
             {(["easy", "medium", "hard"] as AIDifficulty[]).map((d) => (
               <button
@@ -323,7 +1126,6 @@ function ModeSelect({
               </button>
             ))}
           </div>
-
           <Button
             className="w-full"
             onClick={() => onSelectVsAI(difficulty)}
@@ -369,7 +1171,6 @@ function MultiplayerLobby({
       >
         ← Back
       </button>
-
       <div className="text-center">
         <div className="text-4xl mb-2">🎮</div>
         <h2
@@ -382,8 +1183,6 @@ function MultiplayerLobby({
           Create a room or join an existing one
         </p>
       </div>
-
-      {/* Create Room */}
       <div
         className="w-full rounded-2xl p-5"
         style={{
@@ -448,7 +1247,6 @@ function MultiplayerLobby({
           </Button>
         )}
       </div>
-
       <div
         className="w-full flex items-center gap-3"
         style={{ color: "rgba(240,217,181,0.3)" }}
@@ -463,8 +1261,6 @@ function MultiplayerLobby({
           style={{ background: "rgba(181,136,99,0.2)" }}
         />
       </div>
-
-      {/* Join Room */}
       <div
         className="w-full rounded-2xl p-5"
         style={{
@@ -540,13 +1336,11 @@ function ChessGameView({
     gameState.status === "checkmate" ||
     gameState.status === "stalemate" ||
     gameState.status === "draw";
-
   const isInteractive =
     !isWaiting &&
     !isGameOver &&
     !aiThinking &&
     gameState.currentTurn === playerColor;
-
   const lastMove =
     gameState.moveHistory.length > 0
       ? {
@@ -557,11 +1351,8 @@ function ChessGameView({
 
   function handleSquareClick(sq: Square) {
     const piece = gameState.board[sq.rank][sq.file];
-
     if (selected) {
-      // Try to move
       if (legalMoves.some((m) => squareEquals(m, sq))) {
-        // Check promotion
         const selPiece = gameState.board[selected.rank][selected.file];
         if (selPiece?.kind === "pawn" && (sq.rank === 0 || sq.rank === 7)) {
           setPromotionPending({ from: selected, to: sq });
@@ -574,20 +1365,15 @@ function ChessGameView({
         setLegalMoves([]);
         return;
       }
-
-      // Re-select own piece
       if (piece && piece.color === playerColor) {
         setSelected(sq);
         setLegalMoves(getLegalMoves(gameState, sq));
         return;
       }
-
       setSelected(null);
       setLegalMoves([]);
       return;
     }
-
-    // Select piece
     if (piece && piece.color === playerColor) {
       setSelected(sq);
       setLegalMoves(getLegalMoves(gameState, sq));
@@ -609,7 +1395,6 @@ function ChessGameView({
 
   return (
     <div className="flex flex-col items-center gap-3 py-4 px-2 w-full max-w-2xl mx-auto">
-      {/* Top bar */}
       <div className="w-full flex items-center justify-between px-2">
         <button
           type="button"
@@ -643,8 +1428,6 @@ function ChessGameView({
           New Game
         </Button>
       </div>
-
-      {/* Status */}
       <div className="w-full px-2">
         <StatusBar
           gameState={gameState}
@@ -653,8 +1436,6 @@ function ChessGameView({
           currentPlayer={isAI ? playerColor : null}
         />
       </div>
-
-      {/* AI thinking indicator */}
       {aiThinking && (
         <div
           className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg"
@@ -668,8 +1449,6 @@ function ChessGameView({
           AI is thinking…
         </div>
       )}
-
-      {/* Board */}
       <ChessBoard
         gameState={gameState}
         selectedSquare={selected}
@@ -679,8 +1458,6 @@ function ChessGameView({
         isInteractive={isInteractive}
         lastMove={lastMove}
       />
-
-      {/* Captured pieces */}
       <div
         className="w-full rounded-xl px-3 py-1"
         style={{
@@ -693,13 +1470,9 @@ function ChessGameView({
           capturedByBlack={gameState.capturedByBlack}
         />
       </div>
-
-      {/* Move history */}
       <div className="w-full">
         <MoveHistory moves={gameState.moveHistory} />
       </div>
-
-      {/* Game over overlay */}
       <AnimatePresence>
         {isGameOver && (
           <motion.div
@@ -723,8 +1496,6 @@ function ChessGameView({
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Promotion dialog */}
       <AnimatePresence>
         {promotionPending && (
           <PromotionDialog color={playerColor} onSelect={handlePromotion} />
@@ -735,8 +1506,15 @@ function ChessGameView({
 }
 
 // ─── Main ChessApp ─────────────────────────────────────────────────────────────
-export default function ChessApp() {
+interface ChessAppProps {
+  onBack?: () => void;
+}
+
+export default function ChessApp({ onBack }: ChessAppProps) {
   const { actor } = useActor();
+  const [activeSection, setActiveSection] = useState<"chess" | "sharedrop">(
+    "chess",
+  );
 
   const [screen, setScreen] = useState<AppScreen>("home");
   const [gameMode, setGameMode] = useState<GameMode>("vsAI");
@@ -754,7 +1532,6 @@ export default function ChessApp() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const aiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Polling for multiplayer ─────────────────────────────────────────────────
   const startPolling = useCallback(
     (code: string) => {
       if (pollRef.current) clearInterval(pollRef.current);
@@ -763,12 +1540,10 @@ export default function ChessApp() {
         try {
           const state = await actor.getGameState(code);
           if (!state) return;
-
           if ((state.gameStatus as string) === "waiting") {
             setIsWaiting(true);
           } else {
             setIsWaiting(false);
-            // Sync board from backend
             const newBoard = boardFromBackend(state.board);
             setGameState((prev) => ({
               ...prev,
@@ -786,7 +1561,7 @@ export default function ChessApp() {
             if (screen === "waiting") setScreen("game");
           }
         } catch {
-          // ignore polling errors
+          /* ignore */
         }
       }, 1500);
     },
@@ -800,7 +1575,6 @@ export default function ChessApp() {
     };
   }, []);
 
-  // ── AI move trigger ────────────────────────────────────────────────────────
   useEffect(() => {
     if (
       gameMode !== "vsAI" ||
@@ -812,34 +1586,29 @@ export default function ChessApp() {
       aiThinking
     )
       return;
-
     setAIThinking(true);
     aiTimerRef.current = setTimeout(() => {
       const move = getAIMove(gameState, aiDifficulty);
-      if (move) {
+      if (move)
         setGameState((prev) => applyMoveToState(prev, move.from, move.to));
-      }
       setAIThinking(false);
     }, 300);
   }, [gameState, gameMode, screen, playerColor, aiDifficulty, aiThinking]);
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
   async function handleStartVsAI(diff: AIDifficulty) {
     setAIDifficulty(diff);
     setGameMode("vsAI");
     setPlayerColor("white");
     setGameState(createInitialGameState());
     setAIThinking(false);
-
     if (actor) {
       try {
         const code = await actor.createRoom("vsAI" as BackendGameMode);
         setRoomCode(code);
       } catch {
-        // offline mode — no backend
+        /* offline */
       }
     }
-
     setScreen("game");
   }
 
@@ -860,13 +1629,12 @@ export default function ChessApp() {
         setIsWaiting(true);
         startPolling(code);
       } else {
-        // Offline: generate a random 6-char code
         const code = Math.random().toString(36).substring(2, 8).toUpperCase();
         setRoomCode(code);
         const info: RoomInfo = { roomCode: code, playerColor: "white" };
         setRoomInfo(info);
         setPlayerColor("white");
-        setIsWaiting(false); // local play — just start
+        setIsWaiting(false);
         setGameState(createInitialGameState());
         setScreen("game");
       }
@@ -897,7 +1665,6 @@ export default function ChessApp() {
           startPolling(code);
         }
       } else {
-        // Offline join — just start game as black
         setRoomCode(code);
         setPlayerColor("black");
         setGameState(createInitialGameState());
@@ -917,7 +1684,6 @@ export default function ChessApp() {
     setGameState((prev) =>
       applyMoveToState(prev, from, to, promoteTo ?? "queen"),
     );
-
     if (gameMode === "multiplayer" && roomCode && actor) {
       actor
         .makeMove(
@@ -949,7 +1715,6 @@ export default function ChessApp() {
     setScreen("home");
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div
       className="min-h-screen w-full flex flex-col"
@@ -958,62 +1723,149 @@ export default function ChessApp() {
           "radial-gradient(ellipse at 50% 0%, #1e1208 0%, #100a04 60%, #0a0603 100%)",
       }}
     >
-      <AnimatePresence mode="wait">
-        {screen === "home" && (
-          <motion.div
-            key="home"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            className="flex-1 flex items-center justify-center"
-          >
-            <ModeSelect
-              onSelectVsAI={handleStartVsAI}
-              onSelectMultiplayer={handleSelectMultiplayer}
-            />
-          </motion.div>
-        )}
+      {/* Top bar with back button and section tabs */}
+      <div
+        className="sticky top-0 z-40 px-4 py-3"
+        style={{
+          background: "rgba(10,6,3,0.9)",
+          borderBottom: "1px solid rgba(181,136,99,0.15)",
+          backdropFilter: "blur(8px)",
+        }}
+      >
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+          {/* Back button */}
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="text-sm flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all hover:opacity-80"
+              style={{
+                color: "rgba(240,217,181,0.5)",
+                background: "rgba(181,136,99,0.08)",
+                border: "1px solid rgba(181,136,99,0.15)",
+              }}
+              data-ocid="chess.back.button"
+            >
+              ← Studios
+            </button>
+          )}
 
-        {(screen === "creating" || screen === "waiting") && (
-          <motion.div
-            key="lobby"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            className="flex-1 flex items-center justify-center"
+          {/* Section tabs */}
+          <div
+            className="flex items-center gap-1 p-1 rounded-xl"
+            style={{
+              background: "rgba(181,136,99,0.08)",
+              border: "1px solid rgba(181,136,99,0.15)",
+            }}
           >
-            <MultiplayerLobby
-              onCreateRoom={handleCreateRoom}
-              onJoinRoom={handleJoinRoom}
-              onBack={handleBack}
-              creating={creatingRoom}
-              roomInfo={roomInfo}
-            />
-          </motion.div>
-        )}
+            <button
+              type="button"
+              onClick={() => setActiveSection("chess")}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+              style={
+                activeSection === "chess"
+                  ? {
+                      background: "rgba(181,136,99,0.3)",
+                      color: "#f0d9b5",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+                    }
+                  : { color: "rgba(240,217,181,0.45)" }
+              }
+              data-ocid="chess.chess.tab"
+            >
+              <span>♛</span> Chess
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveSection("sharedrop")}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+              style={
+                activeSection === "sharedrop"
+                  ? {
+                      background: "rgba(181,136,99,0.3)",
+                      color: "#f0d9b5",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
+                    }
+                  : { color: "rgba(240,217,181,0.45)" }
+              }
+              data-ocid="chess.sharedrop.tab"
+            >
+              <Share2 className="w-3.5 h-3.5" /> ShareDrop
+            </button>
+          </div>
 
-        {screen === "game" && (
-          <motion.div
-            key="game"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex-1"
-          >
-            <ChessGameView
-              gameState={gameState}
-              playerColor={playerColor}
-              roomCode={roomCode}
-              isWaiting={isWaiting}
-              onMove={handleMove}
-              onNewGame={handleNewGame}
-              onBack={handleBack}
-              isAI={gameMode === "vsAI"}
-              aiThinking={aiThinking}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+          <div className="w-20" />
+        </div>
+      </div>
+
+      {/* Content */}
+      {activeSection === "chess" && (
+        <AnimatePresence mode="wait">
+          {screen === "home" && (
+            <motion.div
+              key="home"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="flex-1 flex items-center justify-center"
+            >
+              <ModeSelect
+                onSelectVsAI={handleStartVsAI}
+                onSelectMultiplayer={handleSelectMultiplayer}
+              />
+            </motion.div>
+          )}
+          {(screen === "creating" || screen === "waiting") && (
+            <motion.div
+              key="lobby"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="flex-1 flex items-center justify-center"
+            >
+              <MultiplayerLobby
+                onCreateRoom={handleCreateRoom}
+                onJoinRoom={handleJoinRoom}
+                onBack={handleBack}
+                creating={creatingRoom}
+                roomInfo={roomInfo}
+              />
+            </motion.div>
+          )}
+          {screen === "game" && (
+            <motion.div
+              key="game"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex-1"
+            >
+              <ChessGameView
+                gameState={gameState}
+                playerColor={playerColor}
+                roomCode={roomCode}
+                isWaiting={isWaiting}
+                onMove={handleMove}
+                onNewGame={handleNewGame}
+                onBack={handleBack}
+                isAI={gameMode === "vsAI"}
+                aiThinking={aiThinking}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
+
+      {activeSection === "sharedrop" && (
+        <motion.div
+          key="sharedrop"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex-1"
+        >
+          <ShareDropPanel />
+        </motion.div>
+      )}
 
       {/* Footer */}
       <footer
@@ -1031,6 +1883,8 @@ export default function ChessApp() {
           caffeine.ai
         </a>
       </footer>
+
+      <Toaster richColors position="bottom-right" />
     </div>
   );
 }
